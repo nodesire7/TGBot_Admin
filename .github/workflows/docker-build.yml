@@ -12,7 +12,6 @@ on:
   workflow_dispatch:
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   REGISTRY: docker.io
   API_IMAGE: nodesire7/tgbot-admin-api
   BOT_IMAGE: nodesire7/tgbot-admin-bot
@@ -37,19 +36,9 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Download Go dependencies
+      - name: Go mod tidy
         working-directory: api
-        run: go mod download
-
-      - name: Verify Go dependencies
-        working-directory: api
-        run: go mod verify
-
-      - name: Install Python dependencies
-        working-directory: bot
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+        run: go mod tidy
 
       - name: Build Go API
         working-directory: api
@@ -60,10 +49,15 @@ jobs:
         run: go test -v ./... || echo "No tests yet"
         continue-on-error: true
 
+      - name: Install Python dependencies
+        working-directory: bot
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
       - name: Lint Python Bot
         working-directory: bot
         run: python -m py_compile main.py
-        continue-on-error: true
 
   # ============================================
   # Stage 2: Docker Build & Push
@@ -121,8 +115,6 @@ jobs:
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Build and push Bot image
         uses: docker/build-push-action@v5
@@ -133,8 +125,6 @@ jobs:
           tags: ${{ steps.meta-bot.outputs.tags }}
           labels: ${{ steps.meta-bot.outputs.labels }}
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Summary
         run: |
