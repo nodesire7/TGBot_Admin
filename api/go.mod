@@ -2,8 +2,6 @@ module github.com/tgbot/admin
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jackc/pgx/v5 v5.5.0
