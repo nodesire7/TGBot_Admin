@@ -2,23 +2,13 @@ FROM golang:1.21-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod first
-COPY api/go.mod ./
-
-# Download dependencies
-RUN go get github.com/gin-gonic/gin@v1.9.1 && \
-    go get github.com/jackc/pgx/v5@v5.5.0 && \
-    go get github.com/redis/go-redis/v9@9.3.0 && \
-    go get github.com/golang-jwt/jwt/v5@v5.2.0 && \
-    go get github.com/gorilla/websocket@v1.5.1 && \
-    go get github.com/joho/godotenv@v1.5.1 && \
-    go get golang.org/x/crypto@v0.16.0
-
-# Copy source code
+# Copy source code first
 COPY api/ .
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main .
+# Initialize modules and download dependencies
+RUN go mod init github.com/tgbot/admin || true && \
+    go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o main .
 
 # Final stage
 FROM alpine:latest
