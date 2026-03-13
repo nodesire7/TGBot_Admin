@@ -29,15 +29,15 @@ func WSEvents(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	ctx := context.Background()
 
 	// Subscribe to event stream
-	subscriber := redis.Subscribe(ctx, "channel:events")
+	subscriber := rdb.Subscribe(ctx, "channel:events")
 	defer subscriber.Close()
 
 	// Get last 10 events on connect
-	streams, _ := redis.XRevRange(ctx, "stream:events", "+", "-").Result()
+	streams, _ := rdb.XRevRange(ctx, "stream:events", "+", "-").Result()
 	for i, stream := range streams {
 		if i >= 10 {
 			break
@@ -76,7 +76,7 @@ func WSMetrics(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	ctx := context.Background()
 
 	ticker := time.NewTicker(5 * time.Second)
@@ -88,10 +88,10 @@ func WSMetrics(c *gin.Context) {
 			// Get bot metrics
 			metrics := make(map[string]interface{})
 
-			online, _ := redis.HGet(ctx, "bot:status", "online").Bool()
-			pid, _ := redis.HGet(ctx, "bot:metrics", "pid").Int()
-			memoryMB, _ := redis.HGet(ctx, "bot:metrics", "memory_mb").Int()
-			cpuPercent, _ := redis.HGet(ctx, "bot:metrics", "cpu_percent").Int()
+			online, _ := rdb.HGet(ctx, "bot:status", "online").Bool()
+			pid, _ := rdb.HGet(ctx, "bot:metrics", "pid").Int()
+			memoryMB, _ := rdb.HGet(ctx, "bot:metrics", "memory_mb").Int()
+			cpuPercent, _ := rdb.HGet(ctx, "bot:metrics", "cpu_percent").Int()
 
 			metrics["bot_status"] = map[string]interface{}{
 				"online":      online,
@@ -102,9 +102,9 @@ func WSMetrics(c *gin.Context) {
 
 			// Get today's stats
 			today := time.Now().Format("2006-01-02")
-			verified, _ := redis.Get(ctx, "stats:"+today+":verified").Int64()
-			failed, _ := redis.Get(ctx, "stats:"+today+":failed").Int64()
-			kicked, _ := redis.Get(ctx, "stats:"+today+":kicked").Int64()
+			verified, _ := rdb.Get(ctx, "stats:"+today+":verified").Int64()
+			failed, _ := rdb.Get(ctx, "stats:"+today+":failed").Int64()
+			kicked, _ := rdb.Get(ctx, "stats:"+today+":kicked").Int64()
 
 			metrics["today_stats"] = map[string]interface{}{
 				"verified": verified,

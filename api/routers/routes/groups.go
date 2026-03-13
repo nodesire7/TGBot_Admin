@@ -14,6 +14,7 @@ import (
 func GetGroups(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := config.GetDB()
+	rdb := config.GetRedis()
 
 	// Pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -69,10 +70,9 @@ func GetGroups(c *gin.Context) {
 		}
 
 		// Get today's stats from Redis
-		redis := config.GetRedis()
 		today := time.Now().Format("2006-01-02")
-		todayVerified, _ := redis.Get(ctx, "stats:group:"+strconv.FormatInt(g.ChatID, 10)+":"+today+":verified").Int64()
-		todayBlocked, _ := redis.Get(ctx, "stats:group:"+strconv.FormatInt(g.ChatID, 10)+":"+today+":blocked").Int64()
+		todayVerified, _ := rdb.Get(ctx, "stats:group:"+strconv.FormatInt(g.ChatID, 10)+":"+today+":verified").Int64()
+		todayBlocked, _ := rdb.Get(ctx, "stats:group:"+strconv.FormatInt(g.ChatID, 10)+":"+today+":blocked").Int64()
 
 		groups = append(groups, gin.H{
 			"id":             g.ID,
@@ -126,7 +126,7 @@ type UpdateGroupRequest struct {
 func UpdateGroup(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := config.GetDB()
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	chatID, _ := strconv.ParseInt(c.Param("chat_id"), 10, 64)
 
 	var req UpdateGroupRequest
@@ -177,7 +177,7 @@ func UpdateGroup(c *gin.Context) {
 	}
 
 	// Invalidate cache
-	redis.Del(ctx, "cache:group:"+strconv.FormatInt(chatID, 10))
+	rdb.Del(ctx, "cache:group:"+strconv.FormatInt(chatID, 10))
 
 	c.JSON(http.StatusOK, gin.H{"message": "Group updated successfully"})
 }
@@ -185,7 +185,7 @@ func UpdateGroup(c *gin.Context) {
 func DeleteGroup(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := config.GetDB()
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	chatID, _ := strconv.ParseInt(c.Param("chat_id"), 10, 64)
 
 	_, err := db.Exec(ctx, "DELETE FROM groups WHERE chat_id = $1", chatID)
@@ -195,7 +195,7 @@ func DeleteGroup(c *gin.Context) {
 	}
 
 	// Invalidate cache
-	redis.Del(ctx, "cache:group:"+strconv.FormatInt(chatID, 10))
+	rdb.Del(ctx, "cache:group:"+strconv.FormatInt(chatID, 10))
 
 	c.JSON(http.StatusOK, gin.H{"message": "Group deleted successfully"})
 }
@@ -203,10 +203,10 @@ func DeleteGroup(c *gin.Context) {
 func SyncGroup(c *gin.Context) {
 	// TODO: Send sync signal to bot via Redis
 	chatID := c.Param("chat_id")
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	ctx := c.Request.Context()
 
-	redis.Publish(ctx, "bot:command", "sync_group:"+chatID)
+	rdb.Publish(ctx, "bot:command", "sync_group:"+chatID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Sync signal sent"})
 }

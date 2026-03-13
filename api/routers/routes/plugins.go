@@ -168,8 +168,8 @@ func UpdatePlugin(c *gin.Context) {
 	}
 
 	// Invalidate cache
-	redis := config.GetRedis()
-	redis.Del(ctx, "cache:plugins")
+	rdb := config.GetRedis()
+	rdb.Del(ctx, "cache:plugins")
 
 	c.JSON(http.StatusOK, gin.H{"message": "Plugin updated successfully"})
 }
@@ -177,7 +177,7 @@ func UpdatePlugin(c *gin.Context) {
 func ReloadPlugin(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := config.GetDB()
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 	pluginID := c.Param("plugin_id")
 
 	// Update last_restart_at
@@ -191,7 +191,7 @@ func ReloadPlugin(c *gin.Context) {
 	}
 
 	// Send reload signal to bot via Redis
-	redis.Publish(ctx, "bot:command", "reload_plugin:"+pluginID)
+	rdb.Publish(ctx, "bot:command", "reload_plugin:"+pluginID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Reload signal sent"})
 }

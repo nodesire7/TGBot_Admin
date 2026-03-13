@@ -82,8 +82,8 @@ func AddToBlacklist(c *gin.Context) {
 	}
 
 	// Invalidate cache
-	redis := config.GetRedis()
-	redis.Del(ctx, "cache:blacklist:"+strconv.FormatInt(chatID, 10))
+	rdb := config.GetRedis()
+	rdb.Del(ctx, "cache:blacklist:"+strconv.FormatInt(chatID, 10))
 
 	c.JSON(http.StatusOK, gin.H{"message": "User added to blacklist"})
 }
@@ -101,8 +101,8 @@ func RemoveFromBlacklist(c *gin.Context) {
 	}
 
 	// Invalidate cache
-	redis := config.GetRedis()
-	redis.Del(ctx, "cache:blacklist:"+strconv.FormatInt(chatID, 10))
+	rdb := config.GetRedis()
+	rdb.Del(ctx, "cache:blacklist:"+strconv.FormatInt(chatID, 10))
 
 	c.JSON(http.StatusOK, gin.H{"message": "User removed from blacklist"})
 }
