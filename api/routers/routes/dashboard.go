@@ -13,10 +13,10 @@ import (
 func GetDashboardStats(c *gin.Context) {
 	ctx := c.Request.Context()
 	db := config.GetDB()
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 
 	// Get bot status from Redis
-	botStatus := getBotStatus(config.GetRedis())
+	botStatus := getBotStatus(rdb)
 
 	// Get group counts
 	var totalGroups, activeGroups int64
@@ -29,9 +29,9 @@ func GetDashboardStats(c *gin.Context) {
 
 	// Get today's stats from Redis
 	today := time.Now().Format("2006-01-02")
-	todayVerified, _ := redis.Get(ctx, "stats:"+today+":verified").Int64()
-	todayFailed, _ := redis.Get(ctx, "stats:"+today+":failed").Int64()
-	todayKicked, _ := redis.Get(ctx, "stats:"+today+":kicked").Int64()
+	todayVerified, _ := rdb.Get(ctx, "stats:"+today+":verified").Int64()
+	todayFailed, _ := rdb.Get(ctx, "stats:"+today+":failed").Int64()
+	todayKicked, _ := rdb.Get(ctx, "stats:"+today+":kicked").Int64()
 
 	c.JSON(http.StatusOK, gin.H{
 		"bot_status": gin.H{
@@ -52,10 +52,10 @@ func GetDashboardStats(c *gin.Context) {
 
 func GetTimeline(c *gin.Context) {
 	ctx := c.Request.Context()
-	redis := config.GetRedis()
+	rdb := config.GetRedis()
 
 	// Get recent events from Redis Stream
-	streams, err := redis.XRevRange(ctx, "stream:events", "+", "-").Result()
+	streams, err := rdb.XRevRange(ctx, "stream:events", "+", "-").Result()
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"events": []interface{}{}})
 		return
