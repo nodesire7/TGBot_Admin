@@ -25,17 +25,31 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 一键启动
+## 快速部署
 
-### 快速开始
+### 方式一：从 Docker Hub 拉取（推荐）
+
+```bash
+# 1. 下载配置文件
+curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/docker-compose.hub.yml
+curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/.env.example
+mv .env.example .env
+
+# 2. 编辑 .env，填入 BOT_TOKEN
+vim .env
+
+# 3. 启动服务
+docker-compose -f docker-compose.hub.yml up -d
+```
+
+### 方式二：从源码构建
 
 ```bash
 # 1. 克隆项目
 git clone https://github.com/nodesire7/TGBot_Admin.git
 cd TGBot_Admin
 
-# 2. 配置 Bot Token
-# 编辑 .env 文件，填入你的 BOT_TOKEN
+# 2. 一键启动
 ./start.sh
 
 # 首次运行会自动创建 .env 文件
@@ -59,6 +73,13 @@ cd TGBot_Admin
 
 - Web 面板: http://localhost:8000
 - 默认账号: admin / admin123
+
+### Docker Hub 镜像
+
+| 镜像 | 说明 |
+|------|------|
+| `nodesire7/tgbot-admin-api:latest` | Go API 服务 |
+| `nodesire7/tgbot-admin-bot:latest` | Python Bot 引擎 |
 
 ## Bot 命令
 
