@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"github.com/tgbot/admin/config"
 )
 
@@ -14,7 +16,7 @@ func GetDashboardStats(c *gin.Context) {
 	redis := config.GetRedis()
 
 	// Get bot status from Redis
-	botStatus := getBotStatus(redis)
+	botStatus := getBotStatus(config.GetRedis())
 
 	// Get group counts
 	var totalGroups, activeGroups int64
@@ -87,15 +89,15 @@ type BotStatusData struct {
 	StartedAt int64  `json:"started_at"`
 }
 
-func getBotStatus(redis *redis.Client) BotStatusData {
+func getBotStatus(rdb *redis.Client) BotStatusData {
 	ctx := context.Background()
 	status := BotStatusData{}
 
-	online, _ := redis.HGet(ctx, "bot:status", "online").Bool()
-	pid, _ := redis.HGet(ctx, "bot:metrics", "pid").Int()
-	memoryMB, _ := redis.HGet(ctx, "bot:metrics", "memory_mb").Int()
-	cpuPercent, _ := redis.HGet(ctx, "bot:metrics", "cpu_percent").Int()
-	startedAt, _ := redis.HGet(ctx, "bot:status", "started_at").Int64()
+	online, _ := rdb.HGet(ctx, "bot:status", "online").Bool()
+	pid, _ := rdb.HGet(ctx, "bot:metrics", "pid").Int()
+	memoryMB, _ := rdb.HGet(ctx, "bot:metrics", "memory_mb").Int()
+	cpuPercent, _ := rdb.HGet(ctx, "bot:metrics", "cpu_percent").Int()
+	startedAt, _ := rdb.HGet(ctx, "bot:status", "started_at").Int64()
 
 	status.Online = online
 	status.PID = pid

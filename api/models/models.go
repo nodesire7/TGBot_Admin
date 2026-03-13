@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"github.com/lib/pq"
 )
 
 // Group represents a Telegram group configuration
