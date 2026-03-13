@@ -1,0 +1,73 @@
+package routers
+
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/tgbot/admin/middleware"
+	"github.com/tgbot/admin/routers/routes"
+)
+
+func SetupRouter() *gin.Engine {
+	r := gin.Default()
+
+	// CORS middleware
+	r.Use(middleware.CORS())
+
+	// Static files
+	r.Static("/assets", "./web/assets")
+	r.StaticFile("/", "./web/index.html")
+	r.StaticFile("/dashboard", "./web/index.html")
+	r.StaticFile("/groups", "./web/index.html")
+	r.StaticFile("/plugins", "./web/index.html")
+	r.StaticFile("/logs", "./web/index.html")
+
+	// API routes
+	api := r.Group("/api")
+	{
+		// Auth routes (public)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/login", routes.Login)
+			auth.POST("/logout", routes.Logout)
+			auth.POST("/refresh", routes.RefreshToken)
+		}
+
+		// Protected routes
+		protected := api.Group("")
+		protected.Use(middleware.AuthRequired())
+		{
+			// Auth
+			protected.GET("/auth/me", routes.GetCurrentUser)
+
+			// Dashboard
+			protected.GET("/dashboard/stats", routes.GetDashboardStats)
+			protected.GET("/dashboard/timeline", routes.GetTimeline)
+
+			// Groups
+			protected.GET("/groups", routes.GetGroups)
+			protected.GET("/groups/:chat_id", routes.GetGroup)
+			protected.PUT("/groups/:chat_id", routes.UpdateGroup)
+			protected.DELETE("/groups/:chat_id", routes.DeleteGroup)
+			protected.POST("/groups/:chat_id/sync", routes.SyncGroup)
+
+			// Blacklist
+			protected.GET("/groups/:chat_id/blacklist", routes.GetBlacklist)
+			protected.POST("/groups/:chat_id/blacklist", routes.AddToBlacklist)
+			protected.DELETE("/groups/:chat_id/blacklist/:user_id", routes.RemoveFromBlacklist)
+
+			// Plugins
+			protected.GET("/plugins", routes.GetPlugins)
+			protected.PUT("/plugins/:plugin_id", routes.UpdatePlugin)
+			protected.POST("/plugins/:plugin_id/reload", routes.ReloadPlugin)
+
+			// Logs
+			protected.GET("/logs/verification", routes.GetVerificationLogs)
+			protected.GET("/logs/action", routes.GetActionLogs)
+		}
+	}
+
+	// WebSocket
+	r.GET("/ws/events", routes.WSEvents)
+	r.GET("/ws/metrics", routes.WSMetrics)
+
+	return r
+}

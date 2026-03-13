@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TG Admin Bot - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        .status-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .timeline-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen" x-data="app()" x-init="init()">
+    <!-- Login Modal -->
+    <div x-show="!isLoggedIn" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div class="bg-slate-800 rounded-xl p-8 w-full max-w-md shadow-2xl border border-slate-700">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold">TG Admin Bot</h1>
+                <p class="text-slate-400 mt-2">管理面板登录</p>
+            </div>
+            <form @submit.prevent="login" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">用户名</label>
+                    <input type="text" x-model="loginForm.username"
+                        class="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                        placeholder="请输入用户名">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">密码</label>
+                    <input type="password" x-model="loginForm.password"
+                        class="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                        placeholder="请输入密码">
+                </div>
+                <div x-show="loginError" class="text-red-400 text-sm" x-text="loginError"></div>
+                <button type="submit" :disabled="loginLoading"
+                    class="w-full py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition disabled:opacity-50">
+                    <span x-show="!loginLoading">登录</span>
+                    <span x-show="loginLoading">登录中...</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div x-show="isLoggedIn" x-cloak>
+        <!-- Sidebar -->
+        <aside class="fixed left-0 top-0 h-full w-64 bg-slate-800 border-r border-slate-700 z-40">
+            <div class="p-4 border-b border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg">TG Admin</h1>
+                        <p class="text-xs text-slate-400">Bot 管理系统</p>
+                    </div>
+                </div>
+            </div>
+            <nav class="p-4 space-y-2">
+                <a href="#" @click.prevent="currentPage = 'dashboard'"
+                    :class="currentPage === 'dashboard' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                    </svg>
+                    <span>概览</span>
+                </a>
+                <a href="#" @click.prevent="currentPage = 'groups'"
+                    :class="currentPage === 'groups' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>群组管理</span>
+                </a>
+                <a href="#" @click.prevent="currentPage = 'plugins'"
+                    :class="currentPage === 'plugins' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"></path>
+                    </svg>
+                    <span>插件管理</span>
+                </a>
+                <a href="#" @click.prevent="currentPage = 'logs'"
+                    :class="currentPage === 'logs' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                    <span>日志查询</span>
+                </a>
+            </nav>
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
+                <button @click="logout" class="flex items-center space-x-3 text-slate-400 hover:text-white transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    <span>退出登录</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="ml-64 p-8">
+            <!-- Dashboard Page -->
+            <div x-show="currentPage === 'dashboard'">
+                <h2 class="text-2xl font-bold mb-6">系统概览</h2>
+
+                <!-- Status Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Bot Status -->
+                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-slate-400">Bot 状态</span>
+                            <span class="status-dot w-3 h-3 rounded-full"
+                                :class="stats.bot_status?.online ? 'bg-green-500' : 'bg-red-500'"></span>
+                        </div>
+                        <div class="text-3xl font-bold" :class="stats.bot_status?.online ? 'text-green-400' : 'text-red-400'">
+                            <span x-text="stats.bot_status?.online ? '在线' : '离线'"></span>
+                        </div>
+                        <div class="mt-2 text-sm text-slate-500">
+                            PID: <span x-text="stats.bot_status?.pid || '-'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-slate-400">内存占用</span>
+                            <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold">
+                            <span x-text="stats.bot_status?.memory_mb || 0"></span>
+                            <span class="text-lg text-slate-400">MB</span>
+                        </div>
+                        <div class="mt-2 text-sm text-slate-500">
+                            CPU: <span x-text="stats.bot_status?.cpu_percent || 0"></span>%
+                        </div>
+                    </div>
+
+                    <!-- Active Groups -->
+                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-slate-400">活跃群组</span>
+                            <svg class="w-5 h-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold">
+                            <span x-text="stats.active_groups || 0"></span>
+                            <span class="text-lg text-slate-400">/ <span x-text="stats.total_groups || 0"></span></span>
+                        </div>
+                    </div>
+
+                    <!-- Today Stats -->
+                    <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-slate-400">今日验证</span>
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="text-3xl font-bold text-green-400">
+                            <span x-text="stats.today_verified || 0"></span>
+                        </div>
+                        <div class="mt-2 text-sm text-slate-500">
+                            拦截: <span x-text="stats.today_failed || 0"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="bg-slate-800 rounded-xl border border-slate-700">
+                    <div class="p-4 border-b border-slate-700">
+                        <h3 class="font-semibold">实时流水线</h3>
+                    </div>
+                    <div class="p-4 max-h-96 overflow-y-auto">
+                        <div class="space-y-3">
+                            <template x-for="event in timeline" :key="event.id">
+                                <div class="flex items-start space-x-3 p-3 bg-slate-700/50 rounded-lg timeline-enter">
+                                    <div class="w-2 h-2 rounded-full mt-2"
+                                        :class="{
+                                            'bg-green-500': event.type === 'verification.success',
+                                            'bg-red-500': event.type === 'verification.failed_kicked',
+                                            'bg-yellow-500': event.type === 'verification.timeout',
+                                            'bg-blue-500': event.type.includes('joined') || event.type.includes('left'),
+                                            'bg-purple-500': event.type.includes('banned')
+                                        }"></div>
+                                    <div class="flex-1">
+                                        <div class="text-sm">
+                                            <span class="font-medium" x-text="event.username || 'User'"></span>
+                                            <span class="text-slate-400" x-text="getEventText(event.type)"></span>
+                                            <span class="text-primary-400" x-text="event.chat_title"></span>
+                                        </div>
+                                        <div class="text-xs text-slate-500 mt-1" x-text="formatTime(event.timestamp)"></div>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="timeline.length === 0" class="text-center text-slate-500 py-8">
+                                暂无事件记录
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Groups Page -->
+            <div x-show="currentPage === 'groups'">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">群组管理</h2>
+                    <div class="flex items-center space-x-4">
+                        <input type="text" x-model="groupSearch" placeholder="搜索群组..."
+                            class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-slate-700">
+                            <tr>
+                                <th class="text-left px-6 py-4 font-medium">群组</th>
+                                <th class="text-left px-6 py-4 font-medium">成员数</th>
+                                <th class="text-left px-6 py-4 font-medium">状态</th>
+                                <th class="text-left px-6 py-4 font-medium">今日验证</th>
+                                <th class="text-left px-6 py-4 font-medium">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700">
+                            <template x-for="group in filteredGroups" :key="group.chat_id">
+                                <tr class="hover:bg-slate-700/50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-3">
+                                            <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white font-bold">
+                                                <span x-text="group.title?.charAt(0) || 'G'"></span>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium" x-text="group.title"></div>
+                                                <div class="text-sm text-slate-400" x-text="'@' + (group.username || group.chat_id)"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4" x-text="group.member_count || 0"></td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-sm"
+                                            :class="group.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'">
+                                            <span x-text="group.is_active ? '启用' : '禁用'"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span class="text-green-400" x-text="group.today_verified"></span>
+                                        <span class="text-slate-500">/</span>
+                                        <span class="text-red-400" x-text="group.today_blocked"></span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center space-x-2">
+                                            <button @click="toggleGroup(group)"
+                                                :class="group.is_active ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'"
+                                                class="text-sm font-medium transition">
+                                                <span x-text="group.is_active ? '禁用' : '启用'"></span>
+                                            </button>
+                                            <span class="text-slate-600">|</span>
+                                            <button @click="openGroupDetail(group)" class="text-primary-400 hover:text-primary-300 text-sm font-medium transition">
+                                                详情
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Plugins Page -->
+            <div x-show="currentPage === 'plugins'">
+                <h2 class="text-2xl font-bold mb-6">插件管理</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="plugin in plugins" :key="plugin.plugin_id">
+                        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-semibold text-lg" x-text="plugin.name"></h3>
+                                    <button @click="togglePlugin(plugin)"
+                                        :class="plugin.is_enabled ? 'bg-green-500' : 'bg-slate-600'"
+                                        class="relative w-12 h-6 rounded-full transition-colors">
+                                        <span class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"
+                                            :class="plugin.is_enabled ? 'translate-x-6' : ''"></span>
+                                    </button>
+                                </div>
+                                <p class="text-slate-400 text-sm mb-4" x-text="plugin.description"></p>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-slate-500">优先级: <span x-text="plugin.priority"></span></span>
+                                    <button @click="reloadPlugin(plugin)"
+                                        class="text-primary-400 hover:text-primary-300 font-medium transition">
+                                        重新加载
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Logs Page -->
+            <div x-show="currentPage === 'logs'">
+                <h2 class="text-2xl font-bold mb-6">验证日志</h2>
+                <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                    <table class="w-full">
+                        <thead class="bg-slate-700">
+                            <tr>
+                                <th class="text-left px-6 py-4 font-medium">用户</th>
+                                <th class="text-left px-6 py-4 font-medium">群组</th>
+                                <th class="text-left px-6 py-4 font-medium">状态</th>
+                                <th class="text-left px-6 py-4 font-medium">题目/答案</th>
+                                <th class="text-left px-6 py-4 font-medium">时间</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700">
+                            <template x-for="log in logs" :key="log.id">
+                                <tr class="hover:bg-slate-700/50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="font-medium" x-text="log.first_name || log.username || log.user_id"></div>
+                                    </td>
+                                    <td class="px-6 py-4" x-text="log.chat_id"></td>
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-sm"
+                                            :class="{
+                                                'bg-green-500/20 text-green-400': log.status === 'success',
+                                                'bg-red-500/20 text-red-400': log.status === 'failed',
+                                                'bg-yellow-500/20 text-yellow-400': log.status === 'timeout'
+                                            }">
+                                            <span x-text="log.status"></span>
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span x-text="log.question"></span>
+                                        <span class="text-slate-400" x-text="' → ' + log.answer"></span>
+                                    </td>
+                                    <td class="px-6 py-4 text-slate-400" x-text="formatTime(log.created_at)"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        function app() {
+            return {
+                // Auth
+                isLoggedIn: false,
+                token: localStorage.getItem('token'),
+                loginForm: { username: '', password: '' },
+                loginError: '',
+                loginLoading: false,
+
+                // State
+                currentPage: 'dashboard',
+                stats: {},
+                timeline: [],
+                groups: [],
+                plugins: [],
+                logs: [],
+                groupSearch: '',
+
+                // Computed
+                get filteredGroups() {
+                    if (!this.groupSearch) return this.groups;
+                    const search = this.groupSearch.toLowerCase();
+                    return this.groups.filter(g =>
+                        g.title?.toLowerCase().includes(search) ||
+                        g.username?.toLowerCase().includes(search)
+                    );
+                },
+
+                // Methods
+                async init() {
+                    if (this.token) {
+                        this.isLoggedIn = true;
+                        await this.loadDashboard();
+                        this.connectWebSocket();
+                    }
+                },
+
+                async login() {
+                    this.loginLoading = true;
+                    this.loginError = '';
+                    try {
+                        const res = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.loginForm)
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.token = data.token;
+                            localStorage.setItem('token', this.token);
+                            this.isLoggedIn = true;
+                            await this.loadDashboard();
+                            this.connectWebSocket();
+                        } else {
+                            this.loginError = data.error || '登录失败';
+                        }
+                    } catch (e) {
+                        this.loginError = '网络错误';
+                    }
+                    this.loginLoading = false;
+                },
+
+                logout() {
+                    this.token = null;
+                    localStorage.removeItem('token');
+                    this.isLoggedIn = false;
+                },
+
+                async loadDashboard() {
+                    await Promise.all([
+                        this.loadStats(),
+                        this.loadTimeline(),
+                        this.loadGroups(),
+                        this.loadPlugins(),
+                        this.loadLogs()
+                    ]);
+                },
+
+                async loadStats() {
+                    try {
+                        const res = await fetch('/api/dashboard/stats', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        this.stats = await res.json();
+                    } catch (e) {}
+                },
+
+                async loadTimeline() {
+                    try {
+                        const res = await fetch('/api/dashboard/timeline', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json();
+                        this.timeline = data.events || [];
+                    } catch (e) {}
+                },
+
+                async loadGroups() {
+                    try {
+                        const res = await fetch('/api/groups', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json();
+                        this.groups = data.groups || [];
+                    } catch (e) {}
+                },
+
+                async loadPlugins() {
+                    try {
+                        const res = await fetch('/api/plugins', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json();
+                        this.plugins = data.plugins || [];
+                    } catch (e) {}
+                },
+
+                async loadLogs() {
+                    try {
+                        const res = await fetch('/api/logs/verification?limit=100', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json();
+                        this.logs = data.logs || [];
+                    } catch (e) {}
+                },
+
+                connectWebSocket() {
+                    const ws = new WebSocket(`ws://${location.host}/ws/events`);
+                    ws.onmessage = (e) => {
+                        const event = JSON.parse(e.data);
+                        this.timeline.unshift(event);
+                        if (this.timeline.length > 50) this.timeline.pop();
+                    };
+                },
+
+                async toggleGroup(group) {
+                    try {
+                        await fetch(`/api/groups/${group.chat_id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ is_active: !group.is_active })
+                        });
+                        group.is_active = !group.is_active;
+                    } catch (e) {}
+                },
+
+                async togglePlugin(plugin) {
+                    try {
+                        await fetch(`/api/plugins/${plugin.plugin_id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Authorization': `Bearer ${this.token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ is_enabled: !plugin.is_enabled })
+                        });
+                        plugin.is_enabled = !plugin.is_enabled;
+                    } catch (e) {}
+                },
+
+                async reloadPlugin(plugin) {
+                    try {
+                        await fetch(`/api/plugins/${plugin.plugin_id}/reload`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        alert('重新加载信号已发送');
+                    } catch (e) {}
+                },
+
+                getEventText(type) {
+                    const texts = {
+                        'verification.success': ' 验证通过 ',
+                        'verification.failed_kicked': ' 验证失败被踢出 ',
+                        'verification.timeout': ' 验证超时 ',
+                        'user.left': ' 离开了群组 ',
+                        'user.banned': ' 被加入黑名单 ',
+                        'user.joined': ' 加入了群组 '
+                    };
+                    return texts[type] || ' ' + type + ' ';
+                },
+
+                formatTime(timestamp) {
+                    if (!timestamp) return '';
+                    const date = new Date(timestamp);
+                    return date.toLocaleString('zh-CN', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>
