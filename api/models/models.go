@@ -42,6 +42,90 @@ type BotStatus struct {
 	Error      string `json:"error,omitempty"`
 }
 
+// Plugin represents a bot plugin
+type Plugin struct {
+	ID          int64                  `json:"id"`
+	PluginID    string                 `json:"plugin_id"`
+	Name        string                 `json:"name"`
+	Version     string                 `json:"version"`
+	Author      string                 `json:"author"`
+	Description string                 `json:"description"`
+	MainFile    string                 `json:"main_file,omitempty"`
+	Manifest    map[string]interface{} `json:"manifest"`
+	Source      string                 `json:"source"`      // official/community/local/github
+	GitHubURL   string                 `json:"github_url,omitempty"`
+	IsSystem    bool                   `json:"is_system"`
+	IsEnabled   bool                   `json:"is_enabled"`
+	Priority    int                    `json:"priority"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+}
+
+// BotPlugin represents a plugin configuration for a specific bot
+type BotPlugin struct {
+	ID        int64                  `json:"id"`
+	BotID     int64                  `json:"bot_id"`
+	PluginID  string                 `json:"plugin_id"`
+	IsEnabled bool                   `json:"is_enabled"`
+	Config    map[string]interface{} `json:"config"`
+	Priority  int                    `json:"priority"`
+}
+
+// PluginLog represents a plugin execution log
+type PluginLog struct {
+	ID              int64                  `json:"id"`
+	PluginID        string                 `json:"plugin_id"`
+	BotID           *int64                 `json:"bot_id"`
+	ChatID          *int64                 `json:"chat_id"`
+	EventType       string                 `json:"event_type"`
+	ExecutionTimeMs int                    `json:"execution_time_ms"`
+	Success         bool                   `json:"success"`
+	ErrorMessage    string                 `json:"error_message,omitempty"`
+	InputData       map[string]interface{} `json:"input_data,omitempty"`
+	OutputData      map[string]interface{} `json:"output_data,omitempty"`
+	CreatedAt       time.Time              `json:"created_at"`
+}
+
+// HookRegistry represents a registered hook
+type HookRegistry struct {
+	ID          int64  `json:"id"`
+	PluginID    string `json:"plugin_id"`
+	HookName    string `json:"hook_name"`
+	HandlerName string `json:"handler_name"`
+	Priority    int    `json:"priority"`
+	IsActive    bool   `json:"is_active"`
+}
+
+// UserPlugin represents a user-developed plugin
+type UserPlugin struct {
+	ID          int64                  `json:"id"`
+	UserID      int64                  `json:"user_id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Code        string                 `json:"code"`
+	Manifest    map[string]interface{} `json:"manifest"`
+	IsTesting   bool                   `json:"is_testing"`
+	TestBotID   *int64                 `json:"test_bot_id"`
+	TestResults map[string]interface{} `json:"test_results,omitempty"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+}
+
+// MarketPlugin represents a plugin from the marketplace
+type MarketPlugin struct {
+	PluginID    string                 `json:"plugin_id"`
+	Name        string                 `json:"name"`
+	Version     string                 `json:"version"`
+	Author      string                 `json:"author"`
+	Description string                 `json:"description"`
+	Manifest    map[string]interface{} `json:"manifest"`
+	GitHubURL   string                 `json:"github_url,omitempty"`
+	Stars       int                    `json:"stars"`
+	Downloads   int                    `json:"downloads"`
+	Category    string                 `json:"category"`
+	Tags        []string               `json:"tags"`
+}
+
 // Group represents a Telegram group configuration
 type Group struct {
 	ID              int64              `json:"id"`

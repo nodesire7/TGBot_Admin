@@ -1,10 +1,13 @@
-# TGBot Admin - Telegram Bot 管理系统
+# TGBot Admin - Telegram Bot 插件化管理平台
 
-分布式 Telegram Bot 管理系统，支持多 Bot 统一管理，包含 Web 管理面板、高性能 Go API 后端、Python Bot 引擎。
+分布式 Telegram Bot 插件化管理平台，支持多 Bot 管理、插件系统、在线开发，包含 Web 管理面板、高性能 Go API 后端、Python Bot 引擎。
 
 ## 功能特性
 
 - **多 Bot 管理** - 一套系统管理多个 Telegram Bot
+- **插件系统** - 即插即用的插件架构，支持官方/社区/本地插件
+- **在线开发** - 内置 Web IDE，支持在线开发和测试插件
+- **插件市场** - 浏览和安装社区插件
 - **Web 配置向导** - 首次启动通过 Web UI 完成配置，无需手动编辑文件
 - **All-in-One 容器** - API + Bot + Web UI 合并到单个 Docker 镜像
 - **多平台支持** - Linux/Windows/macOS (amd64/arm64)
@@ -14,6 +17,73 @@
 - **Bot 引擎** - Python + python-telegram-bot 异步处理
 - **数据存储** - PostgreSQL + Redis 缓存
 - **实时通信** - WebSocket 支持实时事件推送和指标监控
+
+## 插件系统
+
+系统内置 8 个官方插件：
+
+| 插件 | 说明 | 默认启用 |
+|------|------|---------|
+| arithmetic_verification | 算术验证，新用户入群验证 | ✅ |
+| welcome_message | 入群欢迎消息 | ✅ |
+| keyword_filter | 关键词过滤 | ✅ |
+| flood_protection | 防洪水攻击 | ✅ |
+| link_filter | 链接过滤 | ✅ |
+| anti_spam | 反垃圾消息 | ✅ |
+| auto_reply | 自动回复 | ❌ |
+| stats_reporter | 统计报告 | ❌ |
+
+### 开发自定义插件
+
+使用 Python SDK 快速开发插件：
+
+```python
+from tgbot_plugin import Plugin, Context, User, Message
+
+class MyPlugin(Plugin):
+    id = "my_plugin"
+    name = "我的插件"
+    version = "1.0.0"
+    author = "Developer"
+
+    @Plugin.on_join
+    async def on_user_join(self, ctx: Context, user: User):
+        await ctx.send_message(f"欢迎 {user.full_name}!")
+
+    @Plugin.on_command("hello")
+    async def hello_cmd(self, ctx: Context, args):
+        await ctx.reply("Hello World!")
+
+    @Plugin.on_message
+    async def on_message(self, ctx: Context, msg: Message):
+        if "敏感词" in msg.text:
+            await msg.delete()
+            await ctx.kick_user(msg.from_user.id)
+```
+
+### 插件钩子
+
+| 钩子 | 触发时机 | 可用操作 |
+|------|---------|---------|
+| `on_join` | 用户入群 | 验证、欢迎、踢出 |
+| `on_leave` | 用户退群 | 记录、通知 |
+| `on_message` | 收到消息 | 过滤、回复、删除 |
+| `on_command` | 命令触发 | 自定义命令处理 |
+| `on_callback` | 按钮回调 | 处理交互 |
+| `on_error` | 错误发生 | 日志、通知 |
+
+### 插件权限
+
+```python
+from tgbot_plugin import Permission
+
+class MyPlugin(Plugin):
+    permissions = [
+        Permission.SEND_MESSAGES,
+        Permission.DELETE_MESSAGES,
+        Permission.KICK_MEMBERS,
+    ]
+```
 
 ## 多 Bot 管理
 
@@ -224,9 +294,27 @@ GET /api/groups/{chat_id}/blacklist
 POST /api/groups/{chat_id}/blacklist
 DELETE /api/groups/{chat_id}/blacklist/{user_id}
 
-# 插件
-GET /api/plugins
-PUT /api/plugins/{plugin_id}
+# 插件管理
+GET    /api/plugins                    # 已安装插件列表
+POST   /api/plugins/install            # 安装插件
+GET    /api/plugins/{id}               # 插件详情
+PUT    /api/plugins/{id}               # 更新插件配置
+DELETE /api/plugins/{id}               # 卸载插件
+POST   /api/plugins/{id}/enable        # 启用插件
+POST   /api/plugins/{id}/disable       # 禁用插件
+POST   /api/plugins/{id}/test          # 测试插件
+GET    /api/plugins/{id}/logs          # 插件执行日志
+
+# Bot 插件配置
+GET    /api/bots/{id}/plugins          # Bot 的插件配置
+PUT    /api/bots/{id}/plugins/{pid}    # 更新 Bot 插件配置
+
+# 在线开发
+GET    /api/ide/templates              # 插件模板列表
+POST   /api/ide/compile                # 编译检查
+POST   /api/ide/run                    # 沙箱运行
+POST   /api/ide/test                   # 模拟测试
+POST   /api/ide/deploy                 # 部署插件
 POST /api/plugins/{plugin_id}/reload
 
 # 日志
@@ -316,6 +404,30 @@ git push origin v1.0.1
 ```
 
 ## 更新日志
+
+### v2.0.0 (2026-03-14)
+- **插件系统重构**
+  - 新增完整的插件生命周期管理 (install/load/enable/start/stop/disable/uninstall)
+  - 新增 Hook 系统：on_join, on_message, on_command, on_callback 等
+  - 新增 Python 插件 SDK (`bot/plugin_sdk/`)
+  - 支持每个 Bot 独立配置插件
+  - 插件沙箱执行环境 (规划中)
+- **数据库扩展**
+  - 新增 `plugins` 表存储插件
+  - 新增 `bot_plugins` 表存储 Bot 插件配置
+  - 新增 `plugin_logs` 表记录执行日志
+  - 新增 `hook_registry` 表管理钩子注册
+  - 新增 `user_plugins` 表支持在线开发
+  - 新增 `market_plugins` 表缓存市场插件
+- **内置官方插件**
+  - arithmetic_verification: 算术验证
+  - welcome_message: 入群欢迎
+  - keyword_filter: 关键词过滤
+  - flood_protection: 防洪水攻击
+  - link_filter: 链接过滤
+  - anti_spam: 反垃圾消息
+  - auto_reply: 自动回复
+  - stats_reporter: 统计报告
 
 ### v1.3.0 (2026-03-14)
 - 新增多 Bot 管理：一套系统管理多个 Telegram Bot

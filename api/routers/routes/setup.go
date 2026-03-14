@@ -114,10 +114,7 @@ func SaveSetup(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "管理员账号不能为空"})
 		return
 	}
-	if req.BotToken == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Bot Token 不能为空"})
-		return
-	}
+	// Bot Token is optional - can be added later via Bot management
 
 	// Generate JWT secret if not provided
 	if req.JWTSecret == "" {
