@@ -496,79 +496,126 @@ TGBot_Admin/
 
 ## 10. 部署方案
 
-### 10.1 Docker Compose 配置
+### 10.1 单容器部署 (推荐)
+
+使用 All-in-One Docker 镜像，包含 API + Bot + Web UI：
 
 ```yaml
 version: '3.8'
 
 services:
+  tgbot-admin:
+    image: nodesire7/tgbot-admin:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-tgbot}
+      - DB_PASSWORD=${DB_PASSWORD:-tgbot123}
+      - DB_NAME=${DB_NAME:-tgbot}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - JWT_SECRET=${JWT_SECRET:-your_jwt_secret}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - BOT_TOKEN=${BOT_TOKEN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: tgbot
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      - POSTGRES_USER=${DB_USER:-tgbot}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-tgbot123}
+      - POSTGRES_DB=${DB_NAME:-tgbot}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tgbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    restart: unless-stopped
+    command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
-    ports:
-      - "6379:6379"
-
-  bot:
-    build:
-      context: .
-      dockerfile: Dockerfile.bot
-    environment:
-      - BOT_TOKEN=${BOT_TOKEN}
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/tgbot
-      - REDIS_URL=redis://:@redis:6379
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
-
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
-    environment:
-      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/tgbot
-      - REDIS_URL=redis://:@redis:6379
-      - SECRET_KEY=${SECRET_KEY}
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - redis
-    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
   redis_data:
 ```
 
-### 10.2 启动命令
+### 10.2 快速部署命令
 
 ```bash
-# 初始化环境
-cp .env.example .env
-# 编辑 .env 填入配置
+# 方式一：从 Docker Hub 部署（推荐）
+curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/docker-compose.hub.yml
+curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/.env.example
+mv .env.example .env
+# 编辑 .env 填入 BOT_TOKEN
+docker-compose -f docker-compose.hub.yml up -d
 
-# 启动服务
-docker-compose up -d
+# 方式二：从源码构建
+git clone https://github.com/nodesire7/TGBot_Admin.git
+cd TGBot_Admin
+./start.sh
 
-# 初始化数据库
-docker-compose exec api python scripts/init_db.py
+# 方式三：下载二进制直接运行
+# 从 Releases 页面下载对应平台的二进制文件
+tar -xzf tgbot-admin-linux-amd64.tar.gz
+./tgbot-admin
+```
 
-# 创建管理员
-docker-compose exec api python scripts/create_admin.py
+### 10.3 多平台支持
+
+| 平台 | 架构 | 文件 |
+|------|------|------|
+| Linux | amd64 | tgbot-admin-linux-amd64.tar.gz |
+| Linux | arm64 | tgbot-admin-linux-arm64.tar.gz |
+| Windows | amd64 | tgbot-admin-windows-amd64.zip |
+| macOS | amd64 | tgbot-admin-darwin-amd64.tar.gz |
+| macOS | arm64 (M1/M2) | tgbot-admin-darwin-arm64.tar.gz |
+
+### 10.4 容器架构
+
+```
+┌─────────────────────────────────────┐
+│        Docker Container             │
+│  ┌───────────────────────────────┐  │
+│  │        Supervisor             │  │
+│  │  (进程管理)                    │  │
+│  └───────────┬───────────────────┘  │
+│              │                       │
+│  ┌───────────┴───────────┐          │
+│  │                       │          │
+│  ▼                       ▼          │
+│ ┌─────────────┐   ┌─────────────┐   │
+│ │  Go API     │   │ Python Bot  │   │
+│ │  (Gin)      │   │ (telegram)  │   │
+│ │  :8000      │   │             │   │
+│ └─────────────┘   └─────────────┘   │
+│                                     │
+│ ┌─────────────────────────────────┐ │
+│ │        Web UI (Tailwind)        │ │
+│ │        静态文件                  │ │
+│ └─────────────────────────────────┘ │
+└─────────────────────────────────────┘
 ```
 
 ---
