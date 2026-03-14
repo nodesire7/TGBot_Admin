@@ -1,4 +1,4 @@
-name: Build, Test and Deploy
+name: Build and Release
 
 on:
   push:
@@ -13,11 +13,10 @@ on:
 
 env:
   REGISTRY: docker.io
-  API_IMAGE: nodesire7/tgbot-admin-api
-  BOT_IMAGE: nodesire7/tgbot-admin-bot
+  IMAGE_NAME: nodesire7/tgbot-admin
 
 jobs:
-  build-test:
+  build:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -41,21 +40,63 @@ jobs:
         run: |
           go mod init github.com/tgbot/admin || true
           go mod tidy
-          CGO_ENABLED=0 go build -v -o main .
+          CGO_ENABLED=0 go build -v -o tgbot-admin .
 
       - name: Install Python dependencies
         working-directory: bot
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          python -m py_compile main.py
 
-      - name: Lint Python Bot
-        working-directory: bot
-        run: python -m py_compile main.py
-
-  docker-push:
+  # 多平台二进制构建 (仅在 tag 时运行)
+  build-binaries:
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Build API binary
+        working-directory: api
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          go mod init github.com/tgbot/admin || true
+          go mod tidy
+          EXT=""
+          [ "$GOOS" = "windows" ] && EXT=".exe"
+          go build -ldflags="-s -w" -o tgbot-admin-${GOOS}-${GOARCH}${EXT} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tgbot-admin-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: api/tgbot-admin-${{ matrix.goos }}-${{ matrix.goarch }}*
+          retention-days: 1
+
+  # Docker 构建 (仅在 push 到 main 或 tag 时运行)
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
     if: github.event_name != 'pull_request'
     permissions:
       contents: read
@@ -78,76 +119,125 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract metadata for API
-        id: meta-api
+      - name: Extract metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.API_IMAGE }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Extract metadata for Bot
-        id: meta-bot
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.BOT_IMAGE }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push API image
+      - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.api
+          file: ./Dockerfile
           push: true
-          tags: ${{ steps.meta-api.outputs.tags }}
-          labels: ${{ steps.meta-api.outputs.labels }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
 
-      - name: Build and push Bot image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.bot
-          push: true
-          tags: ${{ steps.meta-bot.outputs.tags }}
-          labels: ${{ steps.meta-bot.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-
-      - name: Summary
-        run: |
-          echo "Build completed!"
-          echo "Images: ${{ env.API_IMAGE }}:latest, ${{ env.BOT_IMAGE }}:latest"
-
-  docker-build-pr:
+  # 创建 Release (仅在 tag 时运行)
+  release:
     runs-on: ubuntu-latest
-    needs: build-test
-    if: github.event_name == 'pull_request'
+    needs: [build, build-binaries, docker]
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build API image
-        uses: docker/build-push-action@v5
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          context: .
-          file: ./Dockerfile.api
-          push: false
-          platforms: linux/amd64
+          path: artifacts
 
-      - name: Build Bot image
-        uses: docker/build-push-action@v5
+      - name: Display structure of downloaded files
+        run: ls -la artifacts/
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release
+          # 压缩每个平台的二进制文件
+          for dir in artifacts/tgbot-admin-*; do
+            if [ -d "$dir" ]; then
+              name=$(basename "$dir")
+              cd "$dir"
+              if [ -f "*.exe" ]; then
+                zip -r "../../release/${name}.zip" .
+              else
+                tar -czvf "../../release/${name}.tar.gz" .
+              fi
+              cd - > /dev/null
+            fi
+          done
+          ls -la release/
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          cat > release_notes.md << 'EOF'
+          ## 🚀 TGBot Admin ${{ env.VERSION }}
+
+          ### 多平台支持
+
+          | 平台 | 架构 | 文件 |
+          |------|------|------|
+          | Linux | amd64 | tgbot-admin-linux-amd64.tar.gz |
+          | Linux | arm64 | tgbot-admin-linux-arm64.tar.gz |
+          | Windows | amd64 | tgbot-admin-windows-amd64.zip |
+          | macOS | amd64 | tgbot-admin-darwin-amd64.tar.gz |
+          | macOS | arm64 (M1/M2) | tgbot-admin-darwin-arm64.tar.gz |
+
+          ### Docker 镜像
+
+          ```bash
+          docker pull nodesire7/tgbot-admin:$VERSION
+          ```
+
+          ### 快速部署
+
+          ```bash
+          # 使用 Docker
+          curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/docker-compose.hub.yml
+          docker-compose -f docker-compose.hub.yml up -d
+
+          # 使用二进制
+          # 1. 下载对应平台的压缩包
+          # 2. 解压获得可执行文件
+          # 3. 配置 .env 文件
+          # 4. 运行: ./tgbot-admin
+          ```
+
+          ### 完整功能
+          - Go API 后端 (Gin + pgx + go-redis)
+          - Python Bot 引擎 (python-telegram-bot)
+          - Web 管理面板 (Tailwind CSS + Alpine.js)
+          - PostgreSQL + Redis 数据存储
+          - WebSocket 实时通信
+          - 多平台支持 (Linux/Windows/macOS, amd64/arm64)
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
         with:
-          context: .
-          file: ./Dockerfile.bot
-          push: false
-          platforms: linux/amd64
+          files: release/*
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "🎉 Release ${{ steps.changelog.outputs.version }} created!"
+          echo "📦 Binaries uploaded"
+          echo "🐳 Docker image pushed"
