@@ -21,6 +21,7 @@ func SetupRouter() *gin.Engine {
 	r.StaticFile("/plugins", "./web/index.html")
 	r.StaticFile("/logs", "./web/index.html")
 	r.StaticFile("/setup", "./web/index.html")
+	r.StaticFile("/bots", "./web/index.html")
 
 	// API routes
 	api := r.Group("/api")
@@ -53,6 +54,17 @@ func SetupRouter() *gin.Engine {
 			// Dashboard
 			protected.GET("/dashboard/stats", routes.GetDashboardStats)
 			protected.GET("/dashboard/timeline", routes.GetTimeline)
+
+			// Bots
+			protected.GET("/bots", routes.GetBots)
+			protected.GET("/bots/:id", routes.GetBot)
+			protected.POST("/bots", routes.CreateBot)
+			protected.PUT("/bots/:id", routes.UpdateBot)
+			protected.DELETE("/bots/:id", routes.DeleteBot)
+			protected.POST("/bots/:id/start", routes.StartBot)
+			protected.POST("/bots/:id/stop", routes.StopBot)
+			protected.POST("/bots/:id/restart", routes.RestartBot)
+			protected.POST("/bots/test-token", routes.TestBotToken)
 
 			// Groups
 			protected.GET("/groups", routes.GetGroups)

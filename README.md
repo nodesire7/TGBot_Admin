@@ -1,9 +1,11 @@
 # TGBot Admin - Telegram Bot 管理系统
 
-分布式 Telegram Bot 管理系统，包含 Web 管理面板、高性能 Go API 后端、Python Bot 引擎。
+分布式 Telegram Bot 管理系统，支持多 Bot 统一管理，包含 Web 管理面板、高性能 Go API 后端、Python Bot 引擎。
 
 ## 功能特性
 
+- **多 Bot 管理** - 一套系统管理多个 Telegram Bot
+- **Web 配置向导** - 首次启动通过 Web UI 完成配置，无需手动编辑文件
 - **All-in-One 容器** - API + Bot + Web UI 合并到单个 Docker 镜像
 - **多平台支持** - Linux/Windows/macOS (amd64/arm64)
 - **自动发布** - 推送 Tag 自动创建 GitHub Release
@@ -12,6 +14,16 @@
 - **Bot 引擎** - Python + python-telegram-bot 异步处理
 - **数据存储** - PostgreSQL + Redis 缓存
 - **实时通信** - WebSocket 支持实时事件推送和指标监控
+
+## 多 Bot 管理
+
+系统支持在一个管理面板中管理多个 Telegram Bot：
+
+- **添加 Bot** - 通过 Web UI 添加新的 Bot，自动验证 Token 有效性
+- **Bot 状态** - 实时监控每个 Bot 的运行状态、CPU、内存占用
+- **群组关联** - 每个 Bot 可以关联多个群组
+- **独立配置** - 每个 Bot 可以有独立的验证配置（超时时间、难度等）
+- **主 Bot 标记** - 设置主 Bot，用于系统级操作
 
 ## 架构
 
@@ -192,6 +204,17 @@ Content-Type: application/json
 GET /api/dashboard/stats
 GET /api/dashboard/timeline
 
+# Bot 管理
+GET /api/bots                  # 获取所有 Bot 列表
+POST /api/bots                 # 添加新 Bot
+GET /api/bots/{id}             # 获取 Bot 详情
+PUT /api/bots/{id}             # 更新 Bot 配置
+DELETE /api/bots/{id}          # 删除 Bot
+POST /api/bots/{id}/start      # 启动 Bot
+POST /api/bots/{id}/stop       # 停止 Bot
+POST /api/bots/{id}/restart    # 重启 Bot
+POST /api/bots/test-token      # 测试 Bot Token 有效性
+
 # 群组
 GET /api/groups
 PUT /api/groups/{chat_id}
@@ -293,6 +316,13 @@ git push origin v1.0.1
 ```
 
 ## 更新日志
+
+### v1.3.0 (2026-03-14)
+- 新增多 Bot 管理：一套系统管理多个 Telegram Bot
+- 添加 Bot 管理页面：添加、删除、启停 Bot
+- Bot Token 验证：添加 Bot 时自动验证 Token 有效性
+- 数据库新增 `bots` 表支持多 Bot 数据存储
+- 群组支持关联到指定 Bot
 
 ### v1.2.0 (2026-03-14)
 - 新增 Web 配置向导（类似 WordPress 安装流程）

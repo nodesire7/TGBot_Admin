@@ -4,10 +4,51 @@ import (
 	"time"
 )
 
+// Bot represents a Telegram bot instance
+type Bot struct {
+	ID           int64              `json:"id"`
+	BotID        int64              `json:"bot_id"`        // Telegram bot user ID
+	Username     string             `json:"username"`      // @bot_username
+	Name         string             `json:"name"`          // Bot display name
+	Token        string             `json:"token"`         // Bot API token (masked in responses)
+	IsActive     bool               `json:"is_active"`     // Bot enabled/disabled
+	IsPrimary    bool               `json:"is_primary"`    // Primary bot flag
+	Config       BotConfig          `json:"config"`        // Bot-level configuration
+	Status       BotStatus          `json:"status"`        // Runtime status
+	CreatedAt    time.Time          `json:"created_at"`
+	UpdatedAt    time.Time          `json:"updated_at"`
+	LastActiveAt *time.Time         `json:"last_active_at"`
+	GroupCount   int                `json:"group_count,omitempty"`   // From bot_stats view
+	TodayVerified int               `json:"today_verified,omitempty"` // From bot_stats view
+	TodayFailed   int               `json:"today_failed,omitempty"`  // From bot_stats view
+}
+
+// BotConfig stores bot-level settings
+type BotConfig struct {
+	VerificationTimeout int    `json:"verification_timeout"`
+	Difficulty          string `json:"difficulty"`
+	AutoApprove         bool   `json:"auto_approve"`
+	KickOnFail          bool   `json:"kick_on_fail"`
+	MaxFailCount        int    `json:"max_fail_count"`
+}
+
+// BotStatus represents current bot runtime status
+type BotStatus struct {
+	Online     bool   `json:"online"`
+	PID        int    `json:"pid"`
+	MemoryMB   int    `json:"memory_mb"`
+	CPUPercent int    `json:"cpu_percent"`
+	StartedAt  int64  `json:"started_at"`
+	Error      string `json:"error,omitempty"`
+}
+
 // Group represents a Telegram group configuration
 type Group struct {
 	ID              int64              `json:"id"`
 	ChatID          int64              `json:"chat_id"`
+	BotID           *int64             `json:"bot_id"`            // Associated bot ID
+	BotName         string             `json:"bot_name,omitempty"` // Bot name (from join)
+	BotUsername     string             `json:"bot_username,omitempty"` // Bot username (from join)
 	Title           string             `json:"title"`
 	Username        *string            `json:"username"`
 	Description     *string            `json:"description"`
@@ -45,18 +86,19 @@ type BlacklistEntry struct {
 
 // VerificationLog represents a verification attempt
 type VerificationLog struct {
-	ID             int64      `json:"id"`
-	ChatID         int64      `json:"chat_id"`
-	UserID         int64      `json:"user_id"`
-	Username       *string    `json:"username"`
-	FirstName      *string    `json:"first_name"`
-	Status         string     `json:"status"` // success, failed, timeout
-	Question       *string    `json:"question"`
-	Answer         *string    `json:"answer"`
-	UserAnswer     *string    `json:"user_answer"`
-	AttemptCount   int        `json:"attempt_count"`
-	DurationSeconds int       `json:"duration_seconds"`
-	CreatedAt      time.Time  `json:"created_at"`
+	ID              int64      `json:"id"`
+	ChatID          int64      `json:"chat_id"`
+	BotID           *int64     `json:"bot_id"`        // Associated bot ID
+	UserID          int64      `json:"user_id"`
+	Username        *string    `json:"username"`
+	FirstName       *string    `json:"first_name"`
+	Status          string     `json:"status"` // success, failed, timeout
+	Question        *string    `json:"question"`
+	Answer          *string    `json:"answer"`
+	UserAnswer      *string    `json:"user_answer"`
+	AttemptCount    int        `json:"attempt_count"`
+	DurationSeconds int        `json:"duration_seconds"`
+	CreatedAt       time.Time  `json:"created_at"`
 }
 
 // Plugin represents a bot plugin
@@ -98,13 +140,26 @@ type ActionLog struct {
 
 // DashboardStats aggregates dashboard statistics
 type DashboardStats struct {
-	BotStatus      BotStatus `json:"bot_status"`
+	TotalBots      int64     `json:"total_bots"`
+	ActiveBots     int64     `json:"active_bots"`
 	TotalGroups    int64     `json:"total_groups"`
 	ActiveGroups   int64     `json:"active_groups"`
 	TotalBlocked   int64     `json:"total_blocked"`
 	TodayVerified  int64     `json:"today_verified"`
 	TodayFailed    int64     `json:"today_failed"`
 	TodayKicked    int64     `json:"today_kicked"`
+	BotStats       []BotStat `json:"bot_stats"`
+}
+
+// BotStat represents individual bot statistics
+type BotStat struct {
+	BotID        int64     `json:"bot_id"`
+	Username     string    `json:"username"`
+	Name         string    `json:"name"`
+	IsOnline     bool      `json:"is_online"`
+	GroupCount   int       `json:"group_count"`
+	TodayVerified int      `json:"today_verified"`
+	TodayFailed   int      `json:"today_failed"`
 }
 
 // BotStatus represents current bot runtime status

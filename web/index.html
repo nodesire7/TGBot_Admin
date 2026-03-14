@@ -289,6 +289,14 @@
                     </svg>
                     <span>概览</span>
                 </a>
+                <a href="#" @click.prevent="currentPage = 'bots'"
+                    :class="currentPage === 'bots' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                    </svg>
+                    <span>Bot 管理</span>
+                </a>
                 <a href="#" @click.prevent="currentPage = 'groups'"
                     :class="currentPage === 'groups' ? 'bg-primary-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
                     class="flex items-center space-x-3 px-4 py-3 rounded-lg transition">
@@ -426,6 +434,78 @@
                                 暂无事件记录
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bots Page -->
+            <div x-show="currentPage === 'bots'">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Bot 管理</h2>
+                    <button @click="showAddBotModal = true"
+                        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        添加 Bot
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="bot in bots" :key="bot.id">
+                        <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                            <div class="p-6">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold" x-text="bot.name || bot.username"></h3>
+                                            <p class="text-sm text-slate-400" x-text="'@' + bot.username"></p>
+                                        </div>
+                                    </div>
+                                    <span x-show="bot.is_primary" class="px-2 py-1 bg-yellow-500/20 text-yellow-400 text-xs rounded-full">主 Bot</span>
+                                </div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="flex items-center text-sm">
+                                        <span class="w-2 h-2 rounded-full mr-2" :class="bot.status?.online ? 'bg-green-500' : 'bg-red-500'"></span>
+                                        <span x-text="bot.status?.online ? '在线' : '离线'"></span>
+                                    </span>
+                                    <span class="text-sm text-slate-400">
+                                        <span x-text="bot.group_count || 0"></span> 个群组
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-4 text-sm mb-4">
+                                    <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                                        <div class="text-green-400 font-semibold" x-text="bot.today_verified || 0"></div>
+                                        <div class="text-slate-400 text-xs">今日验证</div>
+                                    </div>
+                                    <div class="bg-slate-700/50 rounded-lg p-2 text-center">
+                                        <div class="text-red-400 font-semibold" x-text="bot.today_failed || 0"></div>
+                                        <div class="text-slate-400 text-xs">今日拦截</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between pt-4 border-t border-slate-700">
+                                    <button @click="toggleBot(bot)"
+                                        :class="bot.is_active ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'"
+                                        class="text-sm font-medium transition">
+                                        <span x-text="bot.is_active ? '禁用' : '启用'"></span>
+                                    </button>
+                                    <button @click="restartBot(bot)" class="text-primary-400 hover:text-primary-300 text-sm font-medium transition">
+                                        重启
+                                    </button>
+                                    <button @click="deleteBot(bot)" class="text-red-400 hover:text-red-300 text-sm font-medium transition">
+                                        删除
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div x-show="bots.length === 0" class="col-span-full text-center py-12 text-slate-400">
+                        暂无 Bot，点击右上角添加
                     </div>
                 </div>
             </div>
@@ -572,6 +652,55 @@
         </main>
     </div>
 
+    <!-- Add Bot Modal -->
+    <div x-show="showAddBotModal" x-cloak class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAddBotModal = false">
+        <div class="bg-slate-800 rounded-xl w-full max-w-md p-6 shadow-2xl border border-slate-700">
+            <h3 class="text-xl font-bold mb-4">添加 Bot</h3>
+            <form @submit.prevent="addBot">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Bot Token</label>
+                        <input type="text" x-model="newBotForm.token"
+                            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" required>
+                        <p class="text-xs text-slate-500 mt-1">从 @BotFather 获取</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" @click="testBotToken" :disabled="testingBotToken"
+                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition">
+                            <span x-text="testingBotToken ? '验证中...' : '验证 Token'"></span>
+                        </button>
+                        <div x-show="botTokenResult" class="text-sm"
+                            :class="botTokenResult?.success ? 'text-green-400' : 'text-red-400'"
+                            x-text="botTokenResult?.message"></div>
+                    </div>
+                    <div x-show="botTokenResult?.success" class="p-3 bg-slate-700/50 rounded-lg">
+                        <p class="text-sm"><span class="text-slate-400">Bot:</span> @<span x-text="botTokenResult?.username"></span></p>
+                        <p class="text-sm"><span class="text-slate-400">名称:</span> <span x-text="botTokenResult?.name"></span></p>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">显示名称（可选）</label>
+                        <input type="text" x-model="newBotForm.name"
+                            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="自定义名称">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" x-model="newBotForm.is_primary" id="is_primary" class="rounded bg-slate-700 border-slate-600">
+                        <label for="is_primary" class="text-sm text-slate-300">设为主 Bot</label>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" @click="showAddBotModal = false" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition">
+                        取消
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition">
+                        添加
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         function app() {
             return {
@@ -609,9 +738,14 @@
                 stats: {},
                 timeline: [],
                 groups: [],
+                bots: [],
                 plugins: [],
                 logs: [],
                 groupSearch: '',
+                showAddBotModal: false,
+                newBotForm: { token: '', name: '', is_primary: false },
+                testingBotToken: false,
+                botTokenResult: null,
 
                 // Computed
                 get filteredGroups() {
@@ -748,6 +882,7 @@
                         this.loadStats(),
                         this.loadTimeline(),
                         this.loadGroups(),
+                        this.loadBots(),
                         this.loadPlugins(),
                         this.loadLogs()
                     ]);
@@ -769,6 +904,86 @@
                         });
                         const data = await res.json();
                         this.timeline = data.events || [];
+                    } catch (e) {}
+                },
+
+                async loadBots() {
+                    try {
+                        const res = await fetch('/api/bots', {
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        const data = await res.json();
+                        this.bots = data.bots || [];
+                    } catch (e) {}
+                },
+
+                async testBotToken() {
+                    if (!this.newBotForm.token) return;
+                    this.testingBotToken = true;
+                    this.botTokenResult = null;
+                    try {
+                        const res = await fetch('/api/bots/test-token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: this.newBotForm.token })
+                        });
+                        this.botTokenResult = await res.json();
+                    } catch (e) {
+                        this.botTokenResult = { success: false, message: '网络错误' };
+                    }
+                    this.testingBotToken = false;
+                },
+
+                async addBot() {
+                    try {
+                        const res = await fetch('/api/bots', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify(this.newBotForm)
+                        });
+                        if (res.ok) {
+                            this.showAddBotModal = false;
+                            this.newBotForm = { token: '', name: '', is_primary: false };
+                            this.botTokenResult = null;
+                            await this.loadBots();
+                        }
+                    } catch (e) {}
+                },
+
+                async toggleBot(bot) {
+                    try {
+                        await fetch(`/api/bots/${bot.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}`
+                            },
+                            body: JSON.stringify({ is_active: !bot.is_active })
+                        });
+                        await this.loadBots();
+                    } catch (e) {}
+                },
+
+                async restartBot(bot) {
+                    try {
+                        await fetch(`/api/bots/${bot.id}/restart`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                    } catch (e) {}
+                },
+
+                async deleteBot(bot) {
+                    if (!confirm(`确定删除 Bot @${bot.username}？`)) return;
+                    try {
+                        await fetch(`/api/bots/${bot.id}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${this.token}` }
+                        });
+                        await this.loadBots();
                     } catch (e) {}
                 },
 
