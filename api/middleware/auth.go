@@ -59,15 +59,17 @@ func AuthRequired() gin.HandlerFunc {
 			return
 		}
 
-		// Check if session exists in Redis
-		ctx := c.Request.Context()
+		// Check if session exists in Redis (if available)
 		redisClient := config.GetRedis()
-		sessionKey := "session:" + tokenString
-		exists := redisClient.Exists(ctx, sessionKey).Val()
-		if exists == 0 {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
-			c.Abort()
-			return
+		if redisClient != nil {
+			ctx := c.Request.Context()
+			sessionKey := "session:" + tokenString
+			exists := redisClient.Exists(ctx, sessionKey).Val()
+			if exists == 0 {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Session expired"})
+				c.Abort()
+				return
+			}
 		}
 
 		// Store user info in context

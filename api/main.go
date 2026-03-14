@@ -14,17 +14,31 @@ func main() {
 		log.Printf("Warning: .env file not found, using system env")
 	}
 
-	// Initialize database
-	if err := config.InitDB(); err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	// Load setup configuration
+	cfg, err := config.LoadSetupConfig()
+	if err != nil {
+		log.Printf("Warning: Failed to load setup config: %v", err)
 	}
-	defer config.CloseDB()
 
-	// Initialize Redis
-	if err := config.InitRedis(); err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+	// Check if system is configured
+	if cfg != nil && cfg.IsConfigured {
+		// Initialize database from saved config
+		if err := config.InitDBFromConfig(); err != nil {
+			log.Fatalf("Failed to connect to database: %v", err)
+		}
+		defer config.CloseDB()
+
+		// Initialize Redis from saved config
+		if err := config.InitRedisFromConfig(); err != nil {
+			log.Fatalf("Failed to connect to Redis: %v", err)
+		}
+		defer config.CloseRedis()
+
+		log.Println("System configured, starting in normal mode")
+	} else {
+		log.Println("System not configured, starting in setup mode")
+		log.Println("Please visit http://localhost:8000 to complete setup")
 	}
-	defer config.CloseRedis()
 
 	// Setup router
 	r := routers.SetupRouter()

@@ -54,6 +54,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     supervisor \
     curl \
+    netcat-openbsd \
+    postgresql-client \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy API binary from builder
@@ -83,9 +86,9 @@ RUN chmod +x /app/entrypoint.sh
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-# Create directories for supervisor
-RUN mkdir -p /var/log/supervisor /var/run && \
-    chown -R appuser:appuser /var/log/supervisor /var/run
+# Create directories for supervisor and data
+RUN mkdir -p /var/log/supervisor /var/run /app/data && \
+    chown -R appuser:appuser /var/log/supervisor /var/run /app/data
 
 USER appuser
 

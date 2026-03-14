@@ -49,8 +49,187 @@
     </script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen" x-data="app()" x-init="init()">
+
+    <!-- Setup Wizard -->
+    <div x-show="showSetup" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4">
+        <div class="bg-slate-800 rounded-xl w-full max-w-2xl shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">TGBot Admin 安装向导</h1>
+                        <p class="text-slate-400 text-sm">首次运行，请完成以下配置</p>
+                    </div>
+                </div>
+            </div>
+
+            <form @submit.prevent="saveSetup" class="p-6 space-y-6">
+                <!-- Database Section -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-lg flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
+                            </svg>
+                            数据库配置
+                        </h3>
+                        <button type="button" @click="testDatabase"
+                            :disabled="testingDb"
+                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition flex items-center">
+                            <svg x-show="testingDb" class="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="testingDb ? '测试中...' : '测试连接'"></span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">主机地址</label>
+                            <input type="text" x-model="setupForm.db_host"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="postgres">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">端口</label>
+                            <input type="text" x-model="setupForm.db_port"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="5432">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">用户名</label>
+                            <input type="text" x-model="setupForm.db_user"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="tgbot">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">密码</label>
+                            <input type="password" x-model="setupForm.db_password"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="数据库密码">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm text-slate-400 mb-1">数据库名</label>
+                            <input type="text" x-model="setupForm.db_name"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="tgbot">
+                        </div>
+                    </div>
+                    <div x-show="dbTestResult" class="p-2 rounded-lg text-sm"
+                        :class="dbTestResult?.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                        x-text="dbTestResult?.message"></div>
+                </div>
+
+                <!-- Redis Section -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-lg flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            Redis 配置
+                        </h3>
+                        <button type="button" @click="testRedis"
+                            :disabled="testingRedis"
+                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition flex items-center">
+                            <svg x-show="testingRedis" class="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="testingRedis ? '测试中...' : '测试连接'"></span>
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">主机地址</label>
+                            <input type="text" x-model="setupForm.redis_host"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="redis">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">端口</label>
+                            <input type="text" x-model="setupForm.redis_port"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="6379">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm text-slate-400 mb-1">密码（可选）</label>
+                            <input type="password" x-model="setupForm.redis_password"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="Redis 密码">
+                        </div>
+                    </div>
+                    <div x-show="redisTestResult" class="p-2 rounded-lg text-sm"
+                        :class="redisTestResult?.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                        x-text="redisTestResult?.message"></div>
+                </div>
+
+                <!-- Bot Token -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-lg flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                        </svg>
+                        Telegram Bot
+                    </h3>
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Bot Token</label>
+                        <input type="text" x-model="setupForm.bot_token"
+                            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                            placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                        <p class="text-xs text-slate-500 mt-1">从 @BotFather 获取</p>
+                    </div>
+                </div>
+
+                <!-- Admin Account -->
+                <div class="space-y-4">
+                    <h3 class="font-semibold text-lg flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                        管理员账号
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">用户名</label>
+                            <input type="text" x-model="setupForm.admin_username"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="admin">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-slate-400 mb-1">密码</label>
+                            <input type="password" x-model="setupForm.admin_password"
+                                class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                                placeholder="设置管理员密码">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Message -->
+                <div x-show="setupError" class="p-3 bg-red-500/20 text-red-400 rounded-lg text-sm" x-text="setupError"></div>
+
+                <!-- Submit -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-700">
+                    <button type="submit" :disabled="savingSetup"
+                        class="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 rounded-lg font-medium transition disabled:opacity-50 flex items-center">
+                        <svg x-show="savingSetup" class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="savingSetup ? '保存中...' : '完成配置'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Login Modal -->
-    <div x-show="!isLoggedIn" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+    <div x-show="!isLoggedIn && !showSetup" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
         <div class="bg-slate-800 rounded-xl p-8 w-full max-w-md shadow-2xl border border-slate-700">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -396,6 +575,28 @@
     <script>
         function app() {
             return {
+                // Setup
+                showSetup: false,
+                setupForm: {
+                    db_host: 'postgres',
+                    db_port: '5432',
+                    db_user: 'tgbot',
+                    db_password: '',
+                    db_name: 'tgbot',
+                    redis_host: 'redis',
+                    redis_port: '6379',
+                    redis_password: '',
+                    bot_token: '',
+                    admin_username: 'admin',
+                    admin_password: ''
+                },
+                testingDb: false,
+                testingRedis: false,
+                dbTestResult: null,
+                redisTestResult: null,
+                savingSetup: false,
+                setupError: '',
+
                 // Auth
                 isLoggedIn: false,
                 token: localStorage.getItem('token'),
@@ -424,11 +625,91 @@
 
                 // Methods
                 async init() {
+                    // Check setup status first
+                    try {
+                        const statusRes = await fetch('/api/setup/status');
+                        const status = await statusRes.json();
+
+                        if (!status.is_configured) {
+                            // Load existing config if any
+                            const configRes = await fetch('/api/setup/config');
+                            const config = await configRes.json();
+                            if (config.db_host) this.setupForm.db_host = config.db_host;
+                            if (config.db_port) this.setupForm.db_port = config.db_port;
+                            if (config.db_user) this.setupForm.db_user = config.db_user;
+                            if (config.db_name) this.setupForm.db_name = config.db_name;
+                            if (config.redis_host) this.setupForm.redis_host = config.redis_host;
+                            if (config.redis_port) this.setupForm.redis_port = config.redis_port;
+                            if (config.admin_username) this.setupForm.admin_username = config.admin_username;
+                            this.showSetup = true;
+                            return;
+                        }
+                    } catch (e) {
+                        console.error('Failed to check setup status:', e);
+                    }
+
                     if (this.token) {
                         this.isLoggedIn = true;
                         await this.loadDashboard();
                         this.connectWebSocket();
                     }
+                },
+
+                async testDatabase() {
+                    this.testingDb = true;
+                    this.dbTestResult = null;
+                    try {
+                        const res = await fetch('/api/setup/test-db', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.setupForm)
+                        });
+                        this.dbTestResult = await res.json();
+                    } catch (e) {
+                        this.dbTestResult = { success: false, message: '网络错误' };
+                    }
+                    this.testingDb = false;
+                },
+
+                async testRedis() {
+                    this.testingRedis = true;
+                    this.redisTestResult = null;
+                    try {
+                        const res = await fetch('/api/setup/test-redis', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.setupForm)
+                        });
+                        this.redisTestResult = await res.json();
+                    } catch (e) {
+                        this.redisTestResult = { success: false, message: '网络错误' };
+                    }
+                    this.testingRedis = false;
+                },
+
+                async saveSetup() {
+                    this.savingSetup = true;
+                    this.setupError = '';
+                    try {
+                        const res = await fetch('/api/setup/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.setupForm)
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.showSetup = false;
+                            // Auto login with new credentials
+                            this.loginForm.username = this.setupForm.admin_username;
+                            this.loginForm.password = this.setupForm.admin_password;
+                            await this.login();
+                        } else {
+                            this.setupError = data.message || '保存失败';
+                        }
+                    } catch (e) {
+                        this.setupError = '网络错误';
+                    }
+                    this.savingSetup = false;
                 },
 
                 async login() {

@@ -2,6 +2,7 @@ package routers
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/tgbot/admin/config"
 	"github.com/tgbot/admin/middleware"
 	"github.com/tgbot/admin/routers/routes"
 )
@@ -19,10 +20,21 @@ func SetupRouter() *gin.Engine {
 	r.StaticFile("/groups", "./web/index.html")
 	r.StaticFile("/plugins", "./web/index.html")
 	r.StaticFile("/logs", "./web/index.html")
+	r.StaticFile("/setup", "./web/index.html")
 
 	// API routes
 	api := r.Group("/api")
 	{
+		// Setup routes (public, only available before configuration)
+		setup := api.Group("/setup")
+		{
+			setup.GET("/status", routes.GetSetupStatus)
+			setup.GET("/config", routes.GetSetupConfig)
+			setup.POST("/test-db", routes.TestDatabase)
+			setup.POST("/test-redis", routes.TestRedis)
+			setup.POST("/save", routes.SaveSetup)
+		}
+
 		// Auth routes (public)
 		auth := api.Group("/auth")
 		{
@@ -66,8 +78,20 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// WebSocket
-	r.GET("/ws/events", routes.WSEvents)
-	r.GET("/ws/metrics", routes.WSMetrics)
+	r.GET("/ws/events", func(c *gin.Context) {
+		if !config.IsConfigured() {
+			c.JSON(503, gin.H{"error": "System not configured"})
+			return
+		}
+		routes.WSEvents(c)
+	})
+	r.GET("/ws/metrics", func(c *gin.Context) {
+		if !config.IsConfigured() {
+			c.JSON(503, gin.H{"error": "System not configured"})
+			return
+		}
+		routes.WSMetrics(c)
+	})
 
 	return r
 }

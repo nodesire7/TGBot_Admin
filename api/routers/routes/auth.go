@@ -30,13 +30,18 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual authentication against database
-	// For now, use environment-based admin credentials
+	// Get admin credentials from setup config
+	setupCfg := config.GetSetupConfig()
 	adminUsername := "admin"
-	adminPassword := "admin123" // Should be hashed in production
+	adminPassword := "admin123"
+
+	if setupCfg != nil && setupCfg.IsConfigured {
+		adminUsername = setupCfg.AdminUsername
+		adminPassword = setupCfg.AdminPassword
+	}
 
 	if req.Username != adminUsername || req.Password != adminPassword {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
 		return
 	}
 
@@ -45,19 +50,18 @@ func Login(c *gin.Context) {
 	role := "super_admin"
 	token, err := middleware.GenerateToken(userID, role)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成令牌失败"})
 		return
 	}
 
-	// Store session in Redis
-	ctx := c.Request.Context()
+	// Store session in Redis (if available)
 	redisClient := config.GetRedis()
-	sessionKey := "session:" + token
-	redisClient.HSet(ctx, sessionKey, "user_id", userID, "role", role)
-	redisClient.Expire(ctx, sessionKey, 24*time.Hour)
-
-	// Update last login
-	// TODO: Update admin.last_login_at in database
+	if redisClient != nil {
+		ctx := c.Request.Context()
+		sessionKey := "session:" + token
+		redisClient.HSet(ctx, sessionKey, "user_id", userID, "role", role)
+		redisClient.Expire(ctx, sessionKey, 24*time.Hour)
+	}
 
 	resp := LoginResponse{
 		Token: token,

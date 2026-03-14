@@ -82,8 +82,13 @@ func CloseRedis() {
 	}
 }
 
-// GetJWTSecret returns JWT secret from env
+// GetJWTSecret returns JWT secret from setup config or env
 func GetJWTSecret() []byte {
+	// First check setup config
+	if setupConfig != nil && setupConfig.JWTSecret != "" {
+		return []byte(setupConfig.JWTSecret)
+	}
+	// Fall back to env
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		secret = "default-secret-change-in-production"

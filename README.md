@@ -43,15 +43,19 @@
 ```bash
 # 1. 下载配置文件
 curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/docker-compose.hub.yml
-curl -O https://raw.githubusercontent.com/nodesire7/TGBot_Admin/main/.env.example
-mv .env.example .env
 
-# 2. 编辑 .env，填入 BOT_TOKEN
-vim .env
-
-# 3. 启动服务
+# 2. 启动服务
 docker-compose -f docker-compose.hub.yml up -d
+
+# 3. 访问 Web 界面完成配置向导
+# 打开 http://localhost:8000 按提示完成配置
 ```
+
+**首次启动会进入配置向导，无需手动编辑配置文件：**
+- 配置数据库连接（带测试按钮）
+- 配置 Redis 连接（带测试按钮）
+- 填写 Bot Token
+- 设置管理员账号
 
 ### 方式二：从源码构建
 
@@ -289,6 +293,13 @@ git push origin v1.0.1
 ```
 
 ## 更新日志
+
+### v1.2.0 (2026-03-14)
+- 新增 Web 配置向导（类似 WordPress 安装流程）
+- 支持通过 Web UI 配置数据库、Redis、Bot Token
+- 配置页面带连接测试按钮
+- 首次启动无需手动编辑配置文件
+- 移除 container_name，支持多实例部署
 
 ### v1.1.1 (2026-03-14)
 - 移除固定 container_name，支持同一主机部署多实例
