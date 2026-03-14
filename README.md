@@ -2,6 +2,16 @@
 
 分布式 Telegram Bot 管理系统，包含 Web 管理面板、高性能 Go API 后端、Python Bot 引擎。
 
+## 功能特性
+
+- **Web 管理面板** - Tailwind CSS + Alpine.js 构建的响应式 SPA
+- **高性能 API** - Go (Gin) 实现的 REST API + WebSocket
+- **Bot 引擎** - Python + python-telegram-bot 异步处理
+- **数据存储** - PostgreSQL + Redis 缓存
+- **实时通信** - WebSocket 支持实时事件推送和指标监控
+- **Docker 部署** - 支持多平台 (amd64/arm64) 容器化部署
+- **CI/CD** - GitHub Actions 自动构建推送 Docker 镜像
+
 ## 架构
 
 ```
@@ -64,148 +74,46 @@ cd TGBot_Admin
 ./start.sh restart  # 重启服务
 ./start.sh status   # 查看状态
 ./start.sh logs     # 查看日志
-./start.sh build    # 重新构建镜像
-./start.sh clean    # 清理所有数据
-./start.sh update   # 拉取更新并重启
+./start.sh build    # 构建镜像
+./start.sh clean    # 清理容器和镜像
+./start.sh update   # 拉取最新代码并重启
 ```
 
-### 访问地址
+## Bot 指令
 
-- Web 面板: http://localhost:8000
-- 默认账号: admin / admin123
-
-### Docker Hub 镜像
-
-| 镜像 | 说明 |
+| 指令 | 说明 |
 |------|------|
-| `nodesire7/tgbot-admin-api:latest` | Go API 服务 |
-| `nodesire7/tgbot-admin-bot:latest` | Python Bot 引擎 |
+| `/start` | 开始使用机器人 |
+| `/help` | 查看帮助信息 |
+| `/config` | 打开配置面板（交互式按钮） |
+| `/settimeout <秒>` | 设置验证超时时间 |
+| `/setdifficulty <easy/medium/hard>` | 设置题目难度 |
+| `/setmaxfail <次数>` | 设置最大失败次数 |
+| `/kickonfail <on/off>` | 开启/关闭失败自动踢出 |
+| `/autoapprove <on/off>` | 开启/关闭自动审批 |
+| `/ban <用户ID> [原因]` | 封禁用户 |
+| `/unban <用户ID>` | 解封用户 |
+| `/blacklist` | 查看黑名单 |
+| `/stats` | 查看统计数据 |
+| `/webui` | 获取 Web 管理面板链接 |
 
-## Bot 命令
-
-### 群组管理命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `/start` | 开始使用 / 帮助 | `/start` |
-| `/help` | 查看帮助 | `/help` |
-| `/status` | 查看群组状态 | `/status` |
-| `/enable` | 启用验证 | `/enable` |
-| `/disable` | 禁用验证 | `/disable` |
-| `/config` | 查看配置（带按钮） | `/config` |
-| `/webui` | 获取管理面板链接 | `/webui` |
-| `/stats` | 查看统计 | `/stats` |
-
-### 配置命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `/settimeout <秒>` | 设置验证超时 | `/settimeout 300` |
-| `/setdifficulty <level>` | 设置难度 | `/setdifficulty medium` |
-| `/setmaxfail <次数>` | 设置最大失败次数 | `/setmaxfail 3` |
-| `/kickonfail <on\|off>` | 失败是否踢出 | `/kickonfail on` |
-| `/autoapprove <on\|off>` | 自动通过申请 | `/autoapprove off` |
-| `/setconfig <key> <value>` | 通用配置 | `/setconfig difficulty hard` |
-
-### 黑名单命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `/ban <user_id> [reason]` | 封禁用户 | `/ban 123456 垃圾广告` |
-| `/unban <user_id>` | 解封用户 | `/unban 123456` |
-| `/blacklist` | 查看黑名单 | `/blacklist` |
-
-### 其他命令
-
-| 命令 | 说明 | 示例 |
-|------|------|------|
-| `/resetstats confirm` | 清空日志（危险） | `/resetstats confirm` |
-
-## 交互式配置
-
-在群组中使用 `/config` 命令，会显示带按钮的配置面板：
+## 项目结构
 
 ```
-⚙️ 群组配置管理
-
-当前配置：
-• 验证超时：300 秒
-• 题目难度：easy
-• 最大失败次数：3
-• 失败踢出：是
-• 自动通过：否
-
-[验证超时: 300秒]
-[难度: easy] [最大失败: 3次]
-[失败踢出: ✅] [自动通过: ❌]
-[🔄 重置为默认]
-```
-
-点击按钮即可快速切换配置值。
-
-## Web 面板功能
-
-### 概览页面
-- Bot 在线状态、内存、CPU
-- 实时事件流水线
-- 今日验证统计
-
-### 群组管理
-- 群组列表搜索
-- 一键启用/禁用
-- 配置详情编辑
-- 黑名单管理
-
-### 插件管理
-- 功能开关切换
-- 热重载插件
-
-### 日志查询
-- 验证记录查询
-- 操作日志查询
-
-## 配置说明
-
-### 验证配置项
-
-| 配置项 | 类型 | 默认值 | 说明 |
-|--------|------|--------|------|
-| `verification_timeout` | int | 300 | 验证超时（秒），范围 30-3600 |
-| `difficulty` | string | easy | 难度: easy/medium/hard |
-| `max_fail_count` | int | 3 | 最大失败次数，范围 1-20 |
-| `kick_on_fail` | bool | true | 验证失败是否踢出 |
-| `auto_approve` | bool | false | 自动通过入群申请 |
-
-### 难度说明
-
-| 难度 | 题目类型 |
-|------|----------|
-| easy | 个位数加减法 |
-| medium | 两位数加减法 |
-| hard | 两位数乘除法 |
-
-## 开发
-
-### 目录结构
-
-```
-TGBot_Admin/
 ├── api/                    # Go API 服务
 │   ├── main.go             # 入口
 │   ├── config/             # 配置管理
 │   ├── routers/            # 路由
+│   │   └── routes/         # API 处理器
 │   ├── models/             # 数据模型
 │   └── middleware/         # 中间件
-│
 ├── bot/                    # Python Bot 引擎
 │   ├── main.py             # 入口
 │   ├── database.py         # 数据库操作
 │   ├── redis_client.py     # Redis 客户端
 │   └── handlers/           # 事件处理器
-│
 ├── web/                    # 前端
 │   └── index.html          # SPA 入口
-│
 ├── migrations/             # 数据库迁移
 ├── docker-compose.yml      # Docker 编排
 ├── Dockerfile.api          # API 镜像
@@ -214,7 +122,16 @@ TGBot_Admin/
 └── .env.example            # 环境变量模板
 ```
 
-### 本地开发
+## 本地开发
+
+### 环境要求
+
+- Go 1.24+
+- Python 3.11+
+- PostgreSQL 15+
+- Redis 7+
+
+### 开发步骤
 
 ```bash
 # API 开发
@@ -249,7 +166,11 @@ GET /api/dashboard/timeline
 # 群组
 GET /api/groups
 PUT /api/groups/{chat_id}
+DELETE /api/groups/{chat_id}
+POST /api/groups/{chat_id}/sync
 GET /api/groups/{chat_id}/blacklist
+POST /api/groups/{chat_id}/blacklist
+DELETE /api/groups/{chat_id}/blacklist/{user_id}
 
 # 插件
 GET /api/plugins
@@ -270,6 +191,36 @@ ws://localhost:8000/ws/events
 // 实时指标
 ws://localhost:8000/ws/metrics
 ```
+
+## Docker 镜像
+
+本项目已发布到 Docker Hub：
+
+- **API 镜像**: `docker.io/nodesire7/tgbot-admin-api:latest`
+- **Bot 镜像**: `docker.io/nodesire7/tgbot-admin-bot:latest`
+
+支持平台: `linux/amd64`, `linux/arm64`
+
+## 技术栈
+
+| 组件 | 技术 |
+|------|------|
+| API | Go 1.24, Gin, pgx, go-redis |
+| Bot | Python 3.11, python-telegram-bot, asyncpg |
+| 前端 | Tailwind CSS, Alpine.js |
+| 数据库 | PostgreSQL 15 |
+| 缓存 | Redis 7 |
+| 容器 | Docker, Docker Compose |
+| CI/CD | GitHub Actions |
+
+## 更新日志
+
+### 2026-03-14
+- 修复 Go 代码中 `redis` 变量名与包名冲突问题
+- 修复 Go 代码中未使用的 `context` 导入
+- 更新 Dockerfile.api 使用 Go 1.24 并支持自动工具链升级
+- 修复 Dockerfile.bot 中 psutil 编译依赖
+- 优化 GitHub Actions 工作流配置
 
 ## License
 
