@@ -23,9 +23,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Version
-VERSION="1.0.0"
-DOCKER_HUB_API="nodesire7/tgbot-admin-api"
-DOCKER_HUB_BOT="nodesire7/tgbot-admin-bot"
+VERSION="1.1.0"
+DOCKER_HUB_IMAGE="nodesire7/tgbot-admin"
 GITHUB_REPO="https://github.com/nodesire7/TGBot_Admin.git"
 
 # Project directory

@@ -4,13 +4,14 @@
 
 ## 功能特性
 
+- **All-in-One 容器** - API + Bot + Web UI 合并到单个 Docker 镜像
+- **多平台支持** - Linux/Windows/macOS (amd64/arm64)
+- **自动发布** - 推送 Tag 自动创建 GitHub Release
 - **Web 管理面板** - Tailwind CSS + Alpine.js 构建的响应式 SPA
 - **高性能 API** - Go (Gin) 实现的 REST API + WebSocket
 - **Bot 引擎** - Python + python-telegram-bot 异步处理
 - **数据存储** - PostgreSQL + Redis 缓存
 - **实时通信** - WebSocket 支持实时事件推送和指标监控
-- **Docker 部署** - 支持多平台 (amd64/arm64) 容器化部署
-- **CI/CD** - GitHub Actions 自动构建推送 Docker 镜像
 
 ## 架构
 
@@ -61,23 +62,44 @@ cd TGBot_Admin
 
 # 2. 一键启动
 ./start.sh
-
-# 首次运行会自动创建 .env 文件
-# 请编辑 .env 填入从 @BotFather 获取的 Token
 ```
 
-### 启动脚本命令
+### 方式三：下载二进制直接运行
+
+从 [Releases](https://github.com/nodesire7/TGBot_Admin/releases) 页面下载对应平台的二进制文件。
 
 ```bash
-./start.sh          # 启动服务
+# Linux/macOS
+tar -xzf tgbot-admin-linux-amd64.tar.gz
+./tgbot-admin
+
+# Windows
+# 解压 tgbot-admin-windows-amd64.zip
+tgbot-admin.exe
+```
+
+## 启动脚本命令
+
+```bash
+./start.sh          # 启动服务（默认）
 ./start.sh stop     # 停止服务
 ./start.sh restart  # 重启服务
 ./start.sh status   # 查看状态
 ./start.sh logs     # 查看日志
 ./start.sh build    # 构建镜像
-./start.sh clean    # 清理容器和镜像
-./start.sh update   # 拉取最新代码并重启
+./start.sh clean    # 清理所有数据
+./start.sh update   # 拉取更新并重启
 ```
+
+## 多平台支持
+
+| 平台 | 架构 | 文件 |
+|------|------|------|
+| Linux | amd64 | tgbot-admin-linux-amd64.tar.gz |
+| Linux | arm64 | tgbot-admin-linux-arm64.tar.gz |
+| Windows | amd64 | tgbot-admin-windows-amd64.zip |
+| macOS | amd64 | tgbot-admin-darwin-amd64.tar.gz |
+| macOS | arm64 (M1/M2) | tgbot-admin-darwin-arm64.tar.gz |
 
 ## Bot 指令
 
@@ -114,10 +136,13 @@ cd TGBot_Admin
 │   └── handlers/           # 事件处理器
 ├── web/                    # 前端
 │   └── index.html          # SPA 入口
+├── docker/                 # Docker 配置
+│   ├── Dockerfile         # All-in-One 镜像
+│   ├── supervisord.conf   # 进程管理
+│   └── entrypoint.sh       # 入口脚本
 ├── migrations/             # 数据库迁移
-├── docker-compose.yml      # Docker 编排
-├── Dockerfile.api          # API 镜像
-├── Dockerfile.bot          # Bot 镜像
+├── docker-compose.yml      # Docker 编排（源码构建）
+├── docker-compose.hub.yml  # Docker 编排（Docker Hub）
 ├── start.sh                # 一键启动脚本
 └── .env.example            # 环境变量模板
 ```
@@ -127,7 +152,7 @@ cd TGBot_Admin
 ### 环境要求
 
 - Go 1.24+
-- Python 3.11+
+- Python 3.12+
 - PostgreSQL 15+
 - Redis 7+
 
@@ -194,33 +219,49 @@ ws://localhost:8000/ws/metrics
 
 ## Docker 镜像
 
-本项目已发布到 Docker Hub：
+本项目使用单容器部署：
 
-- **API 镜像**: `docker.io/nodesire7/tgbot-admin-api:latest`
-- **Bot 镜像**: `docker.io/nodesire7/tgbot-admin-bot:latest`
+```
+docker pull nodesire7/tgbot-admin:latest
+```
 
 支持平台: `linux/amd64`, `linux/arm64`
+
+容器内使用 supervisor 管理 API 和 Bot 进程。
 
 ## 技术栈
 
 | 组件 | 技术 |
 |------|------|
 | API | Go 1.24, Gin, pgx, go-redis |
-| Bot | Python 3.11, python-telegram-bot, asyncpg |
+| Bot | Python 3.12, python-telegram-bot, asyncpg |
 | 前端 | Tailwind CSS, Alpine.js |
 | 数据库 | PostgreSQL 15 |
 | 缓存 | Redis 7 |
-| 容器 | Docker, Docker Compose |
+| 容器 | Docker, Docker Compose, Supervisor |
 | CI/CD | GitHub Actions |
+
+## 自动发布
+
+推送 Tag 时自动触发：
+
+1. 构建多平台二进制文件
+2. 构建 Docker 镜像并推送到 Docker Hub
+3. 创建 GitHub Release 并附带二进制文件
+
+```bash
+# 创建并推送新版本
+git tag v1.0.1
+git push origin v1.0.1
+```
 
 ## 更新日志
 
-### 2026-03-14
-- 修复 Go 代码中 `redis` 变量名与包名冲突问题
-- 修复 Go 代码中未使用的 `context` 导入
-- 更新 Dockerfile.api 使用 Go 1.24 并支持自动工具链升级
-- 修复 Dockerfile.bot 中 psutil 编译依赖
-- 优化 GitHub Actions 工作流配置
+### v1.0.0 (2026-03-14)
+- 首个正式版本发布
+- 单容器部署（API + Bot + Web UI）
+- 多平台二进制支持
+- GitHub Actions 自动发布
 
 ## License
 
