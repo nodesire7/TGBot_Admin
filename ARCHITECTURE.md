@@ -12,11 +12,16 @@
 └───────────────────────────┬─────────────────────────────────────┘
                             │ HTTP/WebSocket
 ┌───────────────────────────▼─────────────────────────────────────┐
-│                        后端服务层                                │
+│                     All-in-One 容器                             │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │                 FastAPI Application                      │   │
+│  │              Go API Server (Gin)                        │   │
 │  │   REST API │ WebSocket │ Auth │ Business Logic          │   │
 │  └─────────────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │              Bot Engine (python-telegram-bot)            │   │
+│  │   验证模块 │ 禁言模块 │ 踢人模块 │ 消息处理               │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                      Supervisor 进程管理                         │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
 ┌───────────────────────────┴─────────────────────────────────────┐
@@ -25,14 +30,6 @@
 │  │   PostgreSQL     │    │      Redis       │                  │
 │  │ (持久化配置/日志) │    │ (缓存/实时状态)   │                  │
 │  └──────────────────┘    └──────────────────┘                  │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────────────┐
-│                        机器人引擎层                              │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Bot Engine (python-telegram-bot)            │   │
-│  │   验证模块 │ 禁言模块 │ 踢人模块 │ 消息处理               │   │
-│  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,11 +40,12 @@
 | 层级 | 技术 | 版本要求 | 说明 |
 |------|------|----------|------|
 | 前端 | HTML + Tailwind CSS + Alpine.js | Tailwind 3.x | 简约现代 UI，轻量级响应式交互 |
-| 后端 | FastAPI | 0.100+ | 异步高性能，原生支持 WebSocket |
+| 后端 | Go (Gin) | 1.24+ | 高性能 REST API + WebSocket |
 | 机器人 | python-telegram-bot | 20.x | 异步 Telegram Bot 框架 |
 | 数据库 | PostgreSQL | 15+ | 主数据存储，支持 JSONB |
 | 缓存 | Redis | 7+ | 会话管理、实时状态、消息队列 |
-| 部署 | Docker + Docker Compose | - | 容器化部署 |
+| 部署 | Docker + Docker Compose + Supervisor | - | 单容器化部署 |
+| CI/CD | GitHub Actions | - | 自动构建、发布 |
 
 ---
 
@@ -363,11 +361,17 @@ WS     /ws/metrics              # 实时指标推送
 
 ```
 TGBot_Admin/
-├── docker-compose.yml          # Docker 编排
-├── Dockerfile.bot              # Bot 镜像
-├── Dockerfile.api              # API 镜像
+├── Dockerfile                  # All-in-One 镜像
+├── docker-compose.yml          # Docker 编排（源码构建）
+├── docker-compose.hub.yml      # Docker 编排（Docker Hub）
 ├── .env.example                # 环境变量模板
 ├── README.md                   # 项目说明
+├── start.sh                    # 一键部署脚本
+├── deploy.sh                   # 快速部署脚本
+│
+├── docker/                     # Docker 配置
+│   ├── supervisord.conf        # 进程管理配置
+│   └── entrypoint.sh           # 容器入口脚本
 │
 ├── bot/                        # 机器人引擎
 │   ├── main.py                 # Bot 入口
@@ -393,53 +397,33 @@ TGBot_Admin/
 │       ├── __init__.py
 │       └── helpers.py
 │
-├── api/                        # FastAPI 后端
-│   ├── main.py                 # API 入口
-│   ├── config.py               # 配置管理
-│   ├── database.py             # 数据库连接
-│   ├── redis_client.py         # Redis 连接
+├── api/                        # Go API 后端
+│   ├── main.go                 # API 入口
+│   ├── config/                 # 配置管理
+│   │   └── config.go
 │   ├── routers/                # 路由模块
-│   │   ├── __init__.py
-│   │   ├── auth.py             # 认证路由
-│   │   ├── dashboard.py        # 仪表盘路由
-│   │   ├── groups.py           # 群组管理路由
-│   │   ├── plugins.py          # 插件管理路由
-│   │   └── logs.py             # 日志路由
-│   ├── schemas/                # Pydantic 模型
-│   │   ├── __init__.py
-│   │   ├── group.py
-│   │   ├── plugin.py
-│   │   └── log.py
-│   ├── services/               # 业务逻辑
-│   │   ├── __init__.py
-│   │   ├── group_service.py
-│   │   └── plugin_service.py
-│   ├── middleware/             # 中间件
-│   │   ├── __init__.py
-│   │   └── auth.py
-│   └── websocket/              # WebSocket 处理
-│       ├── __init__.py
-│       └── events.py
+│   │   ├── router.go
+│   │   └── routes/             # API 处理器
+│   │       ├── auth.go
+│   │       ├── dashboard.go
+│   │       ├── groups.go
+│   │       ├── plugins.go
+│   │       ├── logs.go
+│   │       └── websocket.go
+│   ├── models/                 # 数据模型
+│   │   └── models.go
+│   └── middleware/             # 中间件
+│       └── auth.go
 │
 ├── web/                        # 前端界面
-│   ├── index.html              # 入口页面
-│   ├── css/
-│   │   └── styles.css
-│   ├── js/
-│   │   ├── app.js
-│   │   ├── api.js
-│   │   ├── ws.js
-│   │   └── utils.js
-│   └── assets/
-│       └── icons/
+│   └── index.html              # SPA 入口页面
 │
 ├── migrations/                 # 数据库迁移
-│   └── versions/
-│       └── 001_init.sql
+│   └── 001_init.sql
 │
-└── scripts/                    # 脚本工具
-    ├── init_db.py              # 初始化数据库
-    └── create_admin.py         # 创建管理员
+└── .github/                    # GitHub Actions
+    └── workflows/
+        └── docker-build.yml    # CI/CD 工作流
 ```
 
 ---

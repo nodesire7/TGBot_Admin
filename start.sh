@@ -313,8 +313,9 @@ create_hub_compose() {
 version: '3.8'
 
 services:
-  api:
-    image: nodesire7/tgbot-admin-api:latest
+  tgbot-admin:
+    image: nodesire7/tgbot-admin:latest
+    container_name: tgbot_admin
     restart: unless-stopped
     ports:
       - "${API_PORT:-8000}:8000"
@@ -330,40 +331,21 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your_jwt_secret}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    volumes:
-      - ./web:/app/web:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  bot:
-    image: nodesire7/tgbot-admin-bot:latest
-    restart: unless-stopped
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=${DB_USER:-tgbot}
-      - DB_PASSWORD=${DB_PASSWORD:-tgbot123}
-      - DB_NAME=${DB_NAME:-tgbot}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   postgres:
     image: postgres:15-alpine
+    container_name: tgbot_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${DB_USER:-tgbot}
@@ -380,6 +362,7 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: tgbot_redis
     restart: unless-stopped
     command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
     volumes:
@@ -413,8 +396,7 @@ deploy_from_hub() {
     create_hub_compose
 
     echo -e "${YELLOW}拉取最新镜像...${NC}"
-    docker pull $DOCKER_HUB_API:latest
-    docker pull $DOCKER_HUB_BOT:latest
+    docker pull $DOCKER_HUB_IMAGE:latest
 
     echo -e "${YELLOW}启动服务...${NC}"
     cd "$SCRIPT_DIR"
@@ -550,8 +532,7 @@ update() {
 
     # Pull latest images
     echo -e "${YELLOW}拉取最新镜像...${NC}"
-    docker pull $DOCKER_HUB_API:latest
-    docker pull $DOCKER_HUB_BOT:latest
+    docker pull $DOCKER_HUB_IMAGE:latest
 
     # Restart
     stop
