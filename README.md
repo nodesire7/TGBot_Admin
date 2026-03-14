@@ -229,6 +229,39 @@ docker pull nodesire7/tgbot-admin:latest
 
 容器内使用 supervisor 管理 API 和 Bot 进程。
 
+### 多实例部署
+
+不设置 `container_name`，Docker Compose 自动生成唯一名称，支持同一主机部署多个实例：
+
+```bash
+# 实例 1：在 /opt/tgbot1 目录
+cd /opt/tgbot1
+./start.sh
+
+# 实例 2：在 /opt/tgbot2 目录（不同端口）
+cd /opt/tgbot2
+echo "API_PORT=8001" >> .env
+./start.sh
+```
+
+容器名称自动生成为：`tgbot1_postgres_1`、`tgbot2_postgres_1` 等，互不冲突。
+
+### 容器间通信
+
+**重要：容器间通信使用 service name！**
+
+```yaml
+# ✅ 正确
+environment:
+  - DB_HOST=postgres      # service name
+  - REDIS_HOST=redis      # service name
+
+# ❌ 错误
+environment:
+  - DB_HOST=tgbot_postgres
+  - REDIS_HOST=tgbot_redis
+```
+
 ## 技术栈
 
 | 组件 | 技术 |
@@ -256,6 +289,11 @@ git push origin v1.0.1
 ```
 
 ## 更新日志
+
+### v1.1.1 (2026-03-14)
+- 移除固定 container_name，支持同一主机部署多实例
+- 修复 Docker Compose 容器间通信说明（service name vs container_name）
+- 优化启动日志输出
 
 ### v1.0.0 (2026-03-14)
 - 首个正式版本发布

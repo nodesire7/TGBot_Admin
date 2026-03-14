@@ -67,6 +67,11 @@ main() {
     echo "  TGBot Admin 启动中..."
     echo "================================"
 
+    # 显示连接信息
+    echo "数据库: ${DB_HOST:-postgres}:${DB_PORT:-5432}"
+    echo "Redis: ${REDIS_HOST:-redis}:${REDIS_PORT:-6379}"
+    echo ""
+
     # 等待数据库
     if [ -n "${DB_HOST}" ]; then
         wait_for_service "${DB_HOST}" "${DB_PORT:-5432}" "PostgreSQL"

@@ -310,12 +310,23 @@ check_bot_token() {
 # Create docker-compose.hub.yml for Docker Hub deployment
 create_hub_compose() {
     cat > "$SCRIPT_DIR/docker-compose.hub.yml" << 'EOF'
+# docker-compose.hub.yml - 使用预构建的 Docker Hub 镜像
+# 单容器全功能部署 (API + Bot + Web UI)
+#
+# ⚠️ 重要：容器间通信使用 service name！
+#   - DB_HOST=postgres     ✅ 正确（使用 service name）
+#   - DB_HOST=tgbot_postgres ❌ 错误
+#   - REDIS_HOST=redis     ✅ 正确
+#   - REDIS_HOST=tgbot_redis ❌ 错误
+#
+# 多实例部署：不设置 container_name，Docker Compose 自动生成唯一名称
+# 格式：<项目目录>_<service>_1，如：tgbot_postgres_1, mybot_redis_1
+
 version: '3.8'
 
 services:
   tgbot-admin:
     image: nodesire7/tgbot-admin:latest
-    container_name: tgbot_admin
     restart: unless-stopped
     ports:
       - "${API_PORT:-8000}:8000"
@@ -345,7 +356,6 @@ services:
 
   postgres:
     image: postgres:15-alpine
-    container_name: tgbot_postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=${DB_USER:-tgbot}
@@ -362,7 +372,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: tgbot_redis
     restart: unless-stopped
     command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
     volumes:
