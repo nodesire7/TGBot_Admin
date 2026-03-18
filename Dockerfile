@@ -4,7 +4,7 @@
 #############################################
 # Stage 1: Build Go API
 #############################################
-FROM golang:1.24-alpine AS api-builder
+FROM golang:1.25-alpine AS api-builder
 
 WORKDIR /app
 
@@ -13,8 +13,7 @@ COPY api/ .
 
 # Build API binary
 ENV GOTOOLCHAIN=auto
-RUN go mod init github.com/tgbot/admin || true && \
-    go mod tidy && \
+RUN go mod download && \
     CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o tgbot-admin-api .
 
 #############################################

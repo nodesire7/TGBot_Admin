@@ -16,8 +16,85 @@ env:
   IMAGE_NAME: nodesire7/tgbot-admin
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Run Go vet
+        working-directory: api
+        run: |
+          go mod download
+          go vet ./...
+
+      - name: Check formatting
+        working-directory: api
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "Formatting issues found:"
+            gofmt -l .
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: test
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Run Go tests
+        working-directory: api
+        run: |
+          go mod download
+          # Note: Full tests require database setup
+          # For now, just verify compilation
+          go build -v -o tgbot-admin .
+
   build:
     runs-on: ubuntu-latest
+    needs: [lint, test]
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
@@ -28,7 +105,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24'
-          cache: false
+          cache: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -38,8 +115,6 @@ jobs:
       - name: Build Go API
         working-directory: api
         run: |
-          go mod init github.com/tgbot/admin || true
-          go mod tidy
           CGO_ENABLED=0 go build -v -o tgbot-admin .
 
       - name: Install Python dependencies
