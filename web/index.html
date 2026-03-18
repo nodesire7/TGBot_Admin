@@ -51,8 +51,8 @@
 <body class="bg-slate-900 text-slate-100 min-h-screen" x-data="app()" x-init="init()">
 
     <!-- Setup Wizard -->
-    <div x-show="showSetup" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4">
-        <div class="bg-slate-800 rounded-xl w-full max-w-2xl shadow-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
+    <div x-show="showSetup" x-cloak class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div class="bg-slate-800 rounded-xl w-full max-w-2xl shadow-2xl border border-slate-700 my-8">
             <div class="p-6 border-b border-slate-700">
                 <div class="flex items-center space-x-3">
                     <div class="w-12 h-12 bg-primary-600 rounded-xl flex items-center justify-center">
@@ -171,12 +171,23 @@
 
                 <!-- Bot Token -->
                 <div class="space-y-4">
-                    <h3 class="font-semibold text-lg flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                        </svg>
-                        Telegram Bot
-                    </h3>
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold text-lg flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            Telegram Bot
+                        </h3>
+                        <button type="button" @click="testBotToken"
+                            :disabled="testingBot"
+                            class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition flex items-center">
+                            <svg x-show="testingBot" class="animate-spin w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="testingBot ? '测试中...' : '测试连接'"></span>
+                        </button>
+                    </div>
                     <div>
                         <label class="block text-sm text-slate-400 mb-1">Bot Token</label>
                         <input type="text" x-model="setupForm.bot_token"
@@ -184,6 +195,9 @@
                             placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
                         <p class="text-xs text-slate-500 mt-1">从 @BotFather 获取</p>
                     </div>
+                    <div x-show="botTestResult" class="p-2 rounded-lg text-sm"
+                        :class="botTestResult?.success ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'"
+                        x-text="botTestResult?.message"></div>
                 </div>
 
                 <!-- Admin Account -->
@@ -579,8 +593,24 @@
 
             <!-- Plugins Page -->
             <div x-show="currentPage === 'plugins'">
-                <h2 class="text-2xl font-bold mb-6">插件管理</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">插件管理</h2>
+                    <div class="flex space-x-2">
+                        <button @click="pluginTab = 'installed'"
+                            :class="pluginTab === 'installed' ? 'bg-primary-600 text-white' : 'bg-slate-700 text-slate-300'"
+                            class="px-4 py-2 rounded-lg transition">
+                            已安装
+                        </button>
+                        <button @click="pluginTab = 'market'; loadMarketPlugins()"
+                            :class="pluginTab === 'market' ? 'bg-primary-600 text-white' : 'bg-slate-700 text-slate-300'"
+                            class="px-4 py-2 rounded-lg transition">
+                            插件市场
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Installed Plugins -->
+                <div x-show="pluginTab === 'installed'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <template x-for="plugin in plugins" :key="plugin.plugin_id">
                         <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
                             <div class="p-6">
@@ -604,6 +634,68 @@
                             </div>
                         </div>
                     </template>
+                </div>
+
+                <!-- Plugin Market -->
+                <div x-show="pluginTab === 'market'">
+                    <!-- Search and Filter -->
+                    <div class="flex items-center space-x-4 mb-6">
+                        <div class="flex-1">
+                            <input type="text" x-model="marketSearch" @input="filterMarketPlugins()"
+                                placeholder="搜索插件..."
+                                class="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                        </div>
+                        <select x-model="marketCategory" @change="filterMarketPlugins()"
+                            class="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none">
+                            <option value="">所有分类</option>
+                            <template x-for="cat in marketCategories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Market Plugins Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="plugin in filteredMarketPlugins" :key="plugin.id">
+                            <div class="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+                                <div class="p-6">
+                                    <div class="flex items-start justify-between mb-3">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="text-2xl" x-text="plugin.icon || '📦'"></span>
+                                            <div>
+                                                <h3 class="font-semibold" x-text="plugin.name"></h3>
+                                                <p class="text-xs text-slate-500" x-text="'v' + plugin.version"></p>
+                                            </div>
+                                        </div>
+                                        <span class="px-2 py-1 bg-slate-700 rounded text-xs" x-text="plugin.category"></span>
+                                    </div>
+                                    <p class="text-slate-400 text-sm mb-4 line-clamp-2" x-text="plugin.description"></p>
+                                    <div class="flex flex-wrap gap-1 mb-4">
+                                        <template x-for="hook in plugin.hooks?.slice(0, 3)" :key="hook">
+                                            <span class="px-2 py-0.5 bg-primary-500/20 text-primary-300 rounded text-xs" x-text="hook"></span>
+                                        </template>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs text-slate-500" x-text="'by ' + plugin.author"></span>
+                                        <button @click="installMarketPlugin(plugin)"
+                                            :disabled="installingPlugin === plugin.id"
+                                            class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-600 rounded-lg text-sm font-medium transition">
+                                            <span x-text="isPluginInstalled(plugin.id) ? '已安装' : (installingPlugin === plugin.id ? '安装中...' : '安装')"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div x-show="loadingMarket" class="text-center py-12">
+                        <svg class="animate-spin w-8 h-8 mx-auto text-primary-500" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p class="text-slate-400 mt-4">加载插件市场...</p>
+                    </div>
                 </div>
             </div>
 
@@ -721,8 +813,10 @@
                 },
                 testingDb: false,
                 testingRedis: false,
+                testingBot: false,
                 dbTestResult: null,
                 redisTestResult: null,
+                botTestResult: null,
                 savingSetup: false,
                 setupError: '',
 
@@ -819,6 +913,33 @@
                         this.redisTestResult = { success: false, message: '网络错误' };
                     }
                     this.testingRedis = false;
+                },
+
+                async testBotToken() {
+                    this.testingBot = true;
+                    this.botTestResult = null;
+                    const token = this.setupForm.bot_token;
+                    if (!token) {
+                        this.botTestResult = { success: false, message: '请输入 Bot Token' };
+                        this.testingBot = false;
+                        return;
+                    }
+                    try {
+                        // Call Telegram API directly to validate token
+                        const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+                        const data = await res.json();
+                        if (data.ok) {
+                            this.botTestResult = {
+                                success: true,
+                                message: `验证成功: @${data.result.username} (${data.result.first_name})`
+                            };
+                        } else {
+                            this.botTestResult = { success: false, message: data.description || 'Token 无效' };
+                        }
+                    } catch (e) {
+                        this.botTestResult = { success: false, message: '网络错误，请检查 Token' };
+                    }
+                    this.testingBot = false;
                 },
 
                 async saveSetup() {

@@ -202,7 +202,7 @@ INSERT INTO plugins (plugin_id, name, version, author, description, source, is_s
  '{"hooks": ["on_message"], "config_schema": {"type": "object", "properties": {"rules": {"type": "array", "items": {"type": "object", "properties": {"trigger": {"type": "string"}, "reply": {"type": "string"}, "is_regex": {"type": "boolean", "default": false}}}}}, "permissions": ["read_messages", "send_messages"]}}'::jsonb),
 
 ('stats_reporter', '统计报告', '1.0.0', 'TGBot Admin', '定期生成群组统计报告', 'official', FALSE, 20,
- '{"hooks": ["on_command"], "config_schema": {"type": "object", "properties": {"schedule": {"type": "string", "default": "0 9 * * *"}, "report_channel": {"type": "integer"}}}, "permissions": ["read_messages", "send_messages"]}}'::jsonb)
+ '{"hooks": ["on_command"], "config_schema": {"type": "object", "properties": {"schedule": {"type": "string", "default": "0 9 * * *"}, "report_channel": {"type": "integer"}}}, "permissions": ["read_messages", "send_messages"]}'::jsonb)
 
 ON CONFLICT (plugin_id) DO NOTHING;
 

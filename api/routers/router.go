@@ -14,14 +14,14 @@ func SetupRouter() *gin.Engine {
 	r.Use(middleware.CORS())
 
 	// Static files
-	r.Static("/assets", "./web/assets")
-	r.StaticFile("/", "./web/index.html")
-	r.StaticFile("/dashboard", "./web/index.html")
-	r.StaticFile("/groups", "./web/index.html")
-	r.StaticFile("/plugins", "./web/index.html")
-	r.StaticFile("/logs", "./web/index.html")
-	r.StaticFile("/setup", "./web/index.html")
-	r.StaticFile("/bots", "./web/index.html")
+	r.Static("/assets", "../web/assets")
+	r.StaticFile("/", "../web/index.html")
+	r.StaticFile("/dashboard", "../web/index.html")
+	r.StaticFile("/groups", "../web/index.html")
+	r.StaticFile("/plugins", "../web/index.html")
+	r.StaticFile("/logs", "../web/index.html")
+	r.StaticFile("/setup", "../web/index.html")
+	r.StaticFile("/bots", "../web/index.html")
 
 	// API routes
 	api := r.Group("/api")
@@ -80,8 +80,27 @@ func SetupRouter() *gin.Engine {
 
 			// Plugins
 			protected.GET("/plugins", routes.GetPlugins)
-			protected.PUT("/plugins/:plugin_id", routes.UpdatePlugin)
-			protected.POST("/plugins/:plugin_id/reload", routes.ReloadPlugin)
+			protected.GET("/plugins/:id", routes.GetPlugin)
+			protected.POST("/plugins/install", routes.InstallPlugin)
+			protected.PUT("/plugins/:id", routes.UpdatePlugin)
+			protected.DELETE("/plugins/:id", routes.UninstallPlugin)
+			protected.POST("/plugins/:id/enable", routes.EnablePlugin)
+			protected.POST("/plugins/:id/disable", routes.DisablePlugin)
+			protected.POST("/plugins/:id/test", routes.TestPlugin)
+			protected.POST("/plugins/:id/reload", routes.ReloadPlugin)
+			protected.GET("/plugins/:id/logs", routes.GetPluginLogs)
+
+			// Bot Plugins
+			protected.GET("/bots/:id/plugins", routes.GetBotPlugins)
+			protected.PUT("/bots/:id/plugins/:plugin_id", routes.UpdateBotPlugin)
+
+			// Marketplace
+			protected.GET("/market/plugins", routes.GetMarketPlugins)
+			protected.GET("/market/plugins/:id", routes.GetMarketPlugin)
+			protected.GET("/market/plugins/:id/code", routes.GetMarketPluginCode)
+			protected.POST("/market/install/:id", routes.InstallFromMarket)
+			protected.GET("/market/categories", routes.GetMarketCategories)
+			protected.GET("/market/repositories", routes.GetMarketRepositories)
 
 			// Logs
 			protected.GET("/logs/verification", routes.GetVerificationLogs)

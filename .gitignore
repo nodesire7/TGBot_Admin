@@ -15,6 +15,7 @@ bot/*.log
 
 # Go
 api/main
+api/tgbot-admin
 api/*.exe
 api/*.exe~
 api/*.dll
@@ -42,3 +43,6 @@ logs/
 # Build
 dist/
 build/
+
+# Data
+api/data/

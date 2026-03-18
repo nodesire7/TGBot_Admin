@@ -22,11 +22,10 @@ func GetBots(c *gin.Context) {
 	}
 
 	query := `
-		SELECT id, bot_id, username, name, is_active, is_primary, config, status,
-			   created_at, updated_at, last_active_at,
+		SELECT id, bot_id, username, name, is_active, is_primary, status,
 			   group_count, today_verified, today_failed
 		FROM bot_stats
-		ORDER BY is_primary DESC, created_at ASC
+		ORDER BY is_primary DESC, id ASC
 	`
 
 	rows, err := db.Query(context.Background(), query)
@@ -39,14 +38,12 @@ func GetBots(c *gin.Context) {
 	var bots []models.Bot
 	for rows.Next() {
 		var bot models.Bot
-		var configBytes, statusBytes []byte
-		var lastActive sql.NullTime
+		var statusBytes []byte
 		var username, name sql.NullString
 
 		err := rows.Scan(
 			&bot.ID, &bot.BotID, &username, &name, &bot.IsActive, &bot.IsPrimary,
-			&configBytes, &statusBytes,
-			&bot.CreatedAt, &bot.UpdatedAt, &lastActive,
+			&statusBytes,
 			&bot.GroupCount, &bot.TodayVerified, &bot.TodayFailed,
 		)
 		if err != nil {
@@ -60,11 +57,7 @@ func GetBots(c *gin.Context) {
 		if name.Valid {
 			bot.Name = name.String
 		}
-		if lastActive.Valid {
-			bot.LastActiveAt = &lastActive.Time
-		}
 
-		json.Unmarshal(configBytes, &bot.Config)
 		json.Unmarshal(statusBytes, &bot.Status)
 
 		bots = append(bots, bot)

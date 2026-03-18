@@ -20,18 +20,47 @@
 
 ## 插件系统
 
-系统内置 8 个官方插件：
+### 插件市场
 
-| 插件 | 说明 | 默认启用 |
-|------|------|---------|
-| arithmetic_verification | 算术验证，新用户入群验证 | ✅ |
-| welcome_message | 入群欢迎消息 | ✅ |
-| keyword_filter | 关键词过滤 | ✅ |
-| flood_protection | 防洪水攻击 | ✅ |
-| link_filter | 链接过滤 | ✅ |
-| anti_spam | 反垃圾消息 | ✅ |
-| auto_reply | 自动回复 | ❌ |
-| stats_reporter | 统计报告 | ❌ |
+插件市场基于 GitHub 仓库，支持官方插件和第三方仓库：
+
+- **官方插件仓库**: [TGBot_Plugins](https://github.com/nodesire7/TGBot_Plugins)
+- **插件索引**: 自动从仓库拉取，支持第三方仓库接入
+- **版本管理**: 基于 Git 标签，自动检测更新
+
+### 官方插件
+
+| 插件 | 说明 | 分类 |
+|------|------|------|
+| arithmetic_verification | 算术验证，新用户入群验证 | verification |
+| welcome_message | 入群欢迎消息 | community |
+| keyword_filter | 关键词过滤 | moderation |
+| flood_protection | 防洪水攻击 | moderation |
+| link_filter | 链接过滤 | moderation |
+| anti_spam | 反垃圾消息 | moderation |
+| auto_reply | 自动回复 | automation |
+| stats_reporter | 统计报告 | utility |
+
+### 安装插件
+
+```bash
+# 通过 API 从市场安装
+curl -X POST http://localhost:8000/api/market/install/arithmetic_verification
+
+# 或通过 Web UI 安装
+# 访问 http://localhost:8000/plugins → 插件市场 → 选择插件 → 安装
+```
+
+### 添加第三方插件仓库
+
+```json
+// POST /api/market/repositories
+{
+  "url": "https://raw.githubusercontent.com/user/my-tgbot-plugins/main",
+  "name": "My Custom Plugins",
+  "branch": "main"
+}
+```
 
 ### 开发自定义插件
 
@@ -207,7 +236,10 @@ tgbot-admin.exe
 
 ## 项目结构
 
+### 主项目 (TGBot_Admin)
+
 ```
+TGBot_Admin/
 ├── api/                    # Go API 服务
 │   ├── main.go             # 入口
 │   ├── config/             # 配置管理
@@ -219,18 +251,37 @@ tgbot-admin.exe
 │   ├── main.py             # 入口
 │   ├── database.py         # 数据库操作
 │   ├── redis_client.py     # Redis 客户端
+│   ├── plugin_sdk/         # 插件开发 SDK
 │   └── handlers/           # 事件处理器
 ├── web/                    # 前端
 │   └── index.html          # SPA 入口
 ├── docker/                 # Docker 配置
-│   ├── Dockerfile         # All-in-One 镜像
-│   ├── supervisord.conf   # 进程管理
-│   └── entrypoint.sh       # 入口脚本
 ├── migrations/             # 数据库迁移
-├── docker-compose.yml      # Docker 编排（源码构建）
-├── docker-compose.hub.yml  # Docker 编排（Docker Hub）
-├── start.sh                # 一键启动脚本
-└── .env.example            # 环境变量模板
+└── start.sh                # 一键启动脚本
+```
+
+### 插件仓库 (TGBot_Plugins)
+
+```
+TGBot_Plugins/
+├── plugins/                # 插件目录
+│   ├── arithmetic_verification/
+│   │   ├── manifest.json   # 插件清单
+│   │   ├── main.py         # 插件代码
+│   │   ├── README.md       # 文档
+│   │   └── config_schema.json
+│   ├── welcome_message/
+│   ├── keyword_filter/
+│   └── ...                 # 更多插件
+├── docs/                   # 开发文档
+│   ├── STANDARDS.md        # 插件标准
+│   ├── DEVELOPMENT.md      # 开发指南
+│   └── manifest_schema.json
+├── scripts/                # 工具脚本
+│   ├── validate_plugins.py
+│   └── generate_index.py
+├── index.json              # 插件索引（自动生成）
+└── README.md
 ```
 
 ## 本地开发
@@ -308,6 +359,14 @@ GET    /api/plugins/{id}/logs          # 插件执行日志
 # Bot 插件配置
 GET    /api/bots/{id}/plugins          # Bot 的插件配置
 PUT    /api/bots/{id}/plugins/{pid}    # 更新 Bot 插件配置
+
+# 插件市场
+GET    /api/market/plugins             # 市场插件列表
+GET    /api/market/plugins/{id}        # 插件详情
+GET    /api/market/plugins/{id}/code   # 获取插件源码
+POST   /api/market/install/{id}        # 从市场安装插件
+GET    /api/market/categories          # 插件分类
+GET    /api/market/repositories        # 仓库列表
 
 # 在线开发
 GET    /api/ide/templates              # 插件模板列表
@@ -404,6 +463,21 @@ git push origin v1.0.1
 ```
 
 ## 更新日志
+
+### v2.1.0 (2026-03-14)
+- **GitHub 插件市场**
+  - 插件独立仓库: [TGBot_Plugins](https://github.com/nodesire7/TGBot_Plugins)
+  - 支持第三方插件仓库接入
+  - 统一插件标准 (manifest.json, main.py, README.md)
+  - GitHub Actions 自动验证和索引生成
+  - 市场 API: 获取插件列表、安装插件、获取源码
+- **插件标准文档**
+  - 版本规范 (SemVer)
+  - 目录结构规范
+  - 代码风格要求
+  - 配置 Schema 规范
+- **8 个官方插件完整迁移**
+  - 所有插件独立目录，符合统一标准
 
 ### v2.0.0 (2026-03-14)
 - **插件系统重构**

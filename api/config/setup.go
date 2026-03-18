@@ -42,7 +42,7 @@ type SetupConfig struct {
 var (
 	setupConfig     *SetupConfig
 	setupConfigLock sync.RWMutex
-	configFilePath  = "/app/data/config.json"
+	configFilePath  = "./data/config.json"
 )
 
 // GetConfigFilePath returns the config file path

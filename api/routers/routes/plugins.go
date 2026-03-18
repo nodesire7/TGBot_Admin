@@ -6,70 +6,65 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/tgbot/admin/config"
-	"github.com/tgbot/admin/models"
 )
 
-var defaultPlugins = []models.Plugin{
+var defaultPlugins = []map[string]interface{}{
 	{
-		PluginID:    "arithmetic_verification",
-		Name:        "算术验证",
-		Description: strPtr("入群算术题验证，防止机器人加入"),
-		IsEnabled:   true,
-		Priority:    1,
-		Config: map[string]interface{}{
+		"plugin_id":  "arithmetic_verification",
+		"name":       "算术验证",
+		"description": "入群算术题验证，防止机器人加入",
+		"is_enabled": true,
+		"priority":    1,
+		"config": map[string]interface{}{
 			"default_timeout":    300,
 			"default_difficulty": "easy",
 		},
 	},
 	{
-		PluginID:    "keyword_filter",
-		Name:        "关键词过滤",
-		Description: strPtr("自动检测并删除包含敏感关键词的消息"),
-		IsEnabled:   false,
-		Priority:    2,
-		Config: map[string]interface{}{
+		"plugin_id":  "keyword_filter",
+		"name":       "关键词过滤",
+		"description": "自动检测并删除包含敏感关键词的消息",
+		"is_enabled": false,
+		"priority":    2,
+		"config": map[string]interface{}{
 			"keywords": []string{},
 			"action":   "delete",
 		},
 	},
 	{
-		PluginID:    "welcome_message",
-		Name:        "入群欢迎",
-		Description: strPtr("新成员入群时发送欢迎消息"),
-		IsEnabled:   false,
-		Priority:    3,
-		Config: map[string]interface{}{
+		"plugin_id":  "welcome_message",
+		"name":       "入群欢迎",
+		"description": "新成员入群时发送欢迎消息",
+		"is_enabled": false,
+		"priority":    3,
+		"config": map[string]interface{}{
 			"message":       "欢迎加入本群！",
 			"delete_after":  0,
 		},
 	},
 	{
-		PluginID:    "flood_protection",
-		Name:        "防洪水",
-		Description: strPtr("限制用户发送消息频率"),
-		IsEnabled:   false,
-		Priority:    4,
-		Config: map[string]interface{}{
-			"max_messages": 5,
+		"plugin_id":  "flood_protection",
+		"name":       "防洪水",
+		"description": "限制用户发送消息频率",
+		"is_enabled": false,
+		"priority":    4,
+		"config": map[string]interface{}{
+			"max_messages":   5,
 			"window_seconds": 10,
-			"action": "mute",
+			"action":         "mute",
 		},
 	},
 	{
-		PluginID:    "link_filter",
-		Name:        "链接过滤",
-		Description: strPtr("自动删除包含链接的消息"),
-		IsEnabled:   false,
-		Priority:    5,
-		Config: map[string]interface{}{
+		"plugin_id":  "link_filter",
+		"name":       "链接过滤",
+		"description": "自动删除包含链接的消息",
+		"is_enabled": false,
+		"priority":    5,
+		"config": map[string]interface{}{
 			"allow_admins": true,
 			"whitelist":    []string{},
 		},
 	},
-}
-
-func strPtr(s string) *string {
-	return &s
 }
 
 func GetPlugins(c *gin.Context) {
@@ -85,7 +80,7 @@ func GetPlugins(c *gin.Context) {
 		for _, p := range defaultPlugins {
 			_, err := db.Exec(ctx,
 				"INSERT INTO plugins (plugin_id, name, description, is_enabled, priority, config, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-				p.PluginID, p.Name, p.Description, p.IsEnabled, p.Priority, p.Config, time.Now(), time.Now(),
+				p["plugin_id"], p["name"], p["description"], p["is_enabled"], p["priority"], p["config"], time.Now(), time.Now(),
 			)
 			if err != nil {
 				continue
@@ -105,22 +100,29 @@ func GetPlugins(c *gin.Context) {
 
 	plugins := make([]map[string]interface{}, 0)
 	for rows.Next() {
-		var p models.Plugin
-		err := rows.Scan(&p.ID, &p.PluginID, &p.Name, &p.Description, &p.IsEnabled, &p.Priority, &p.Config, &p.LastRestartAt, &p.CreatedAt, &p.UpdatedAt)
+		var id int64
+		var pluginID, name, description string
+		var isEnabled bool
+		var priority int
+		var config map[string]interface{}
+		var lastRestartAt *time.Time
+		var createdAt, updatedAt time.Time
+
+		err := rows.Scan(&id, &pluginID, &name, &description, &isEnabled, &priority, &config, &lastRestartAt, &createdAt, &updatedAt)
 		if err != nil {
 			continue
 		}
 		plugins = append(plugins, gin.H{
-			"id":             p.ID,
-			"plugin_id":      p.PluginID,
-			"name":           p.Name,
-			"description":    p.Description,
-			"is_enabled":     p.IsEnabled,
-			"priority":       p.Priority,
-			"config":         p.Config,
-			"last_restart_at": p.LastRestartAt,
-			"created_at":     p.CreatedAt,
-			"updated_at":     p.UpdatedAt,
+			"id":              id,
+			"plugin_id":       pluginID,
+			"name":            name,
+			"description":     description,
+			"is_enabled":      isEnabled,
+			"priority":        priority,
+			"config":          config,
+			"last_restart_at": lastRestartAt,
+			"created_at":      createdAt,
+			"updated_at":      updatedAt,
 		})
 	}
 
@@ -193,4 +195,40 @@ func ReloadPlugin(c *gin.Context) {
 	rdb.Publish(ctx, "bot:command", "reload_plugin:"+pluginID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Reload signal sent"})
+}
+
+func GetPlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func InstallPlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func UninstallPlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func EnablePlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func DisablePlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func TestPlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func GetPluginLogs(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func GetBotPlugins(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+}
+
+func UpdateBotPlugin(c *gin.Context) {
+	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
 }

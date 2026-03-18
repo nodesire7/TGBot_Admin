@@ -185,20 +185,6 @@ type VerificationLog struct {
 	CreatedAt       time.Time  `json:"created_at"`
 }
 
-// Plugin represents a bot plugin
-type Plugin struct {
-	ID            int64              `json:"id"`
-	PluginID      string             `json:"plugin_id"`
-	Name          string             `json:"name"`
-	Description   *string            `json:"description"`
-	IsEnabled     bool               `json:"is_enabled"`
-	Priority      int                `json:"priority"`
-	Config        map[string]interface{} `json:"config"`
-	LastRestartAt *time.Time         `json:"last_restart_at"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-}
-
 // Admin represents a dashboard administrator
 type Admin struct {
 	ID          int64     `json:"id"`
@@ -244,15 +230,6 @@ type BotStat struct {
 	GroupCount   int       `json:"group_count"`
 	TodayVerified int      `json:"today_verified"`
 	TodayFailed   int      `json:"today_failed"`
-}
-
-// BotStatus represents current bot runtime status
-type BotStatus struct {
-	Online    bool   `json:"online"`
-	PID       int    `json:"pid"`
-	MemoryMB  int    `json:"memory_mb"`
-	CPUPercent int   `json:"cpu_percent"`
-	StartedAt int64  `json:"started_at"`
 }
 
 // TimelineEvent represents a real-time event
